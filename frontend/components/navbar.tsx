@@ -1,8 +1,12 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { MessageCircle } from "lucide-react"
-
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
+import { useWallet } from "@solana/wallet-adapter-react"
 export default function Navbar() {
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.1] bg-slate-950/50 backdrop-blur-xl transition-all duration-300">
       <div className="container mx-auto px-4">
@@ -25,22 +29,11 @@ export default function Navbar() {
             <Link href="/community" className="text-blue-100/70 hover:text-blue-100 transition-colors duration-200">
               Community
             </Link>
-            <Button className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300 rounded-xl">
-              <a href="/chat" target="_blank" rel="noreferrer" className="px-2">
-                Launch App
-              </a>
-            </Button>
+            <WalletMultiButton className="!bg-indigo-600 hover:!bg-indigo-700 !rounded-full z-20" />
           </div>
 
           <div className="md:hidden">
-            <Button
-              className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500"
-              size="sm"
-            >
-              <a href="/chat" target="_blank" rel="noreferrer">
-                Launch
-              </a>
-            </Button>
+          <WalletMultiButton className="!bg-indigo-600 hover:!bg-indigo-700 !rounded-full" />
           </div>
         </div>
       </div>

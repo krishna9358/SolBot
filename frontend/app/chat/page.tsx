@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { WavyBackground } from "@/components/ui/aceternity/wavy-background"
 import { cn } from "@/lib/utils"
 import axios from 'axios'
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 
 interface ChatMessageType {
   id: number;
@@ -136,11 +137,12 @@ export default function ChatPage() {
             <PlusCircle className="h-4 w-4 text-indigo-300" />
             <span className="text-indigo-100">New Chat</span>
           </motion.button>
+          <WalletMultiButton />
         </div>
       </header>
 
       {/* Main content */}
-      <div className="relative z-10 flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-indigo-600/30 scrollbar-track-transparent">
+      <div className="relative  flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-indigo-600/30 scrollbar-track-transparent">
         <div className="flex-1 overflow-y-auto space-y-6 mb-4 px-2 max-w-4xl mx-auto">
           {chatMessages.length === 0 ? (
             <div className="space-y-10 py-10">
@@ -297,4 +299,3 @@ export default function ChatPage() {
     </div>
   )
 }
-

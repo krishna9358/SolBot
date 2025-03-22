@@ -21,7 +21,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          {children}
+          <ClientWalletProvider>
+            {children}
+          </ClientWalletProvider>
         </ThemeProvider>
       </body>
     </html>
@@ -31,3 +33,4 @@ export default function RootLayout({
 
 
 import './globals.css'
+import { ClientWalletProvider } from "@/components/wallet-provider"

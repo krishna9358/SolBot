@@ -6,7 +6,7 @@ import { MessageCircle, User } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface ChatMessageProps {
-  role: "user" | "assistant"
+  role: "user" | "assistant" 
   content: string
   isLast?: boolean
 }
@@ -67,4 +67,3 @@ export default function ChatMessage({ role, content, isLast = false }: ChatMessa
     </motion.div>
   )
 }
-

@@ -1,3 +1,4 @@
+"use client"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -6,8 +7,14 @@ import { Spotlight } from "@/components/ui/aceternity/spotlight"
 import Image from "next/image"
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card"
 import Link from "next/link"
-
+import { useWallet } from "@solana/wallet-adapter-react"
+import { useRouter } from "next/navigation"
 export default function Home() {
+  const { connected } = useWallet()
+  const router = useRouter()
+  if(connected){
+    router.push("/chat")
+  }
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-blue-950/20 to-slate-950 ">
       <Navbar />

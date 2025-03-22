@@ -24,6 +24,9 @@ import { WavyBackground } from "@/components/ui/aceternity/wavy-background"
 import { cn } from "@/lib/utils"
 import axios from 'axios'
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { useConnection } from "@solana/wallet-adapter-react"
+import { Connection, LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction , TransactionSignature } from "@solana/web3.js"
 
 interface ChatMessageType {
   id: number;
@@ -31,6 +34,7 @@ interface ChatMessageType {
   content: string;
   actionAnalysis?: string; // Optional field for action analysis
 }
+
 
 export default function ChatPage() {
   const router = useRouter()
@@ -42,7 +46,8 @@ export default function ChatPage() {
   const [isLoading2, setIsLoading] = useState(false) 
 
   const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([]) // New state for chat messages
-
+  const { publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection();
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -92,7 +97,7 @@ export default function ChatPage() {
     setIsLoading(true); // Set loading state to true
 
     try {
-      const response = await axios.post('http://127.0.0.1:5002/chat', {
+      const response = await axios.post('http://127.0.0.1:3002/chat', {
         chat_id: chatId,
         user_message: input,
       });
@@ -111,6 +116,97 @@ export default function ChatPage() {
       setIsLoading(false); // Reset loading state
     }
   };
+
+// Get my balance
+async function getMyBalance(connection: Connection, publicKey: PublicKey, LAMPORTS_PER_SOL: number){
+  if (!publicKey) {
+    console.log("No wallet connected");
+    return;
+  }
+  const balance = await connection.getBalance(publicKey);
+  console.log(`Balance: ${balance / LAMPORTS_PER_SOL} SOL`);
+
+  }
+
+// Transfer SOL
+async function transfer(connection: Connection, receiverPublicKey: PublicKey, senderPublicKey: PublicKey, amount: number){
+    if (!senderPublicKey) {
+      console.error("Wallet not connected");
+      return;
+    }
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: senderPublicKey,
+        toPubkey: receiverPublicKey, // Sending to the same public key for demonstration
+        lamports: 0.1 * LAMPORTS_PER_SOL, // Amount in lamports
+      }));
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction(signature, "processed");
+      console.log("Transfer successful:", signature);
+  }
+
+// Recent Transactions
+// async function getRecentTransactions(connection: Connection, publicKey: PublicKey) {
+//   const transactions = await connection.getSignaturesForAddress(publicKey, { limit: 10 });
+//   console.log("Recent transactions:", transactions);
+// }
+
+// Transaction Cost
+async function getTransactionCost(connection: Connection, publicKey: PublicKey) {
+  if (!publicKey) {
+    console.error("No wallet connected");
+    return;
+  }
+
+  // Create a dummy transaction to estimate the fee
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: publicKey,
+      toPubkey: publicKey, // Sending to the same public key for demonstration
+      lamports: 0.1 * LAMPORTS_PER_SOL , // Amount in lamports
+    })
+  );
+
+  // Fetch the recent blockhash
+  const { blockhash } = await connection.getLatestBlockhash();
+  transaction.recentBlockhash = blockhash; // Set the recent blockhash
+  transaction.feePayer = publicKey; // Set the fee payer
+
+  // Get the estimated fee for the transaction
+  const estimatedFee = await transaction.getEstimatedFee(connection);
+  const fee = estimatedFee ? estimatedFee / LAMPORTS_PER_SOL : 0;
+  console.log("Estimated transaction cost:", fee);
+}
+
+
+
+// Account Info
+  // Get account information for a given public key
+  async function getAccountInfo(connection: Connection, publicKey: PublicKey) {
+    try {
+      // Check if public key exists
+      if (!publicKey) {
+        console.error("No wallet connected");
+        return;
+      }
+
+      // Fetch account info from the connection
+      const accountInfo = await connection.getAccountInfo(publicKey);
+      
+      if (accountInfo) {
+        console.log("Account Information:");
+        console.log("- Account Public Key:", publicKey.toBase58());
+        console.log("- Lamports:", accountInfo.lamports);
+        console.log("- Executable:", accountInfo.executable);
+        console.log("- Data length:", accountInfo.data.length, "bytes");
+      } else {
+        console.log("Account not found");
+      }
+    } catch (error) {
+      console.error("Error fetching account info:", error);
+    }
+  }
+
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-gradient-to-br from-purple-950 via-indigo-950 to-blue-950">
@@ -276,7 +372,8 @@ export default function ChatPage() {
                     type="submit"
                     className="bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
                   >
-                    <Send className="h-5 w-5" />
+                    {/* <Send className="h-5 w-5"   /> */}
+                    <button type="submit"  onClick={() => getTransactionCost(connection, publicKey)}>Submit</button>
                   </motion.button>
                 </div>
               </div>

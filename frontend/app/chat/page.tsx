@@ -156,13 +156,13 @@ export default function ChatPage() {
     // const llm = new ChatOpenAI({
     //   temperature: 0,
     //   model: "gpt-4o-mini",
-    //   apiKey: "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",
+    //   apiKey: process.env.OPENAI_API_KEY,
     // });
 
       const llm = new ChatGroq({
       temperature: 0,
       model: "llama-3.3-70b-versatile",
-      apiKey: "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",
+      apiKey: process.env.GROQ_API_KEY,
     });
     
     const agent = await createReactAgent({

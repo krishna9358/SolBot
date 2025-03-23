@@ -1,0 +1,25 @@
+{
+  "name": "se-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@solana/wallet-adapter-react": "^0.15.36",
+    "@solana/web3.js": "^1.98.0",
+    "@types/cors": "^2.8.17",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "react": "^19.0.0",
+    "socket.io": "^4.8.1",
+    "socketio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1"
+  }
+}

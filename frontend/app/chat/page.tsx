@@ -6,13 +6,14 @@ import {
   MessageCircle,
   Home,
   PlusCircle,
-  Send,
-  Mic,
+  // Send,
+  // Mic,
   Sparkles,
-  BookOpen,
-  History,
-  BarChart3,
-  Settings,
+  Send,
+  // BookOpen,
+  // History,
+  // BarChart3,
+  // Settings,
 } from "lucide-react"
 import ChatMessage from "@/components/chat-message"
 import { useChat } from "@/hooks/use-chat"
@@ -24,9 +25,19 @@ import { WavyBackground } from "@/components/ui/aceternity/wavy-background"
 import { cn } from "@/lib/utils"
 import axios from 'axios'
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
-import { useWallet } from "@solana/wallet-adapter-react"
-import { useConnection } from "@solana/wallet-adapter-react"
+import { useWallet, useConnection } from "@solana/wallet-adapter-react"
 import { Connection, LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction , TransactionSignature } from "@solana/web3.js"
+import { AgentExecutor, createReactAgent } from "langchain/agents";
+import { pull } from "langchain/hub";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { ChatGroq } from "@langchain/groq";
+import { ChatOpenAI } from "@langchain/openai";
+import { DynamicTool } from "@langchain/core/tools";
+import { OpenAI } from "@langchain/openai";
+import { StructuredOutputParser } from "@langchain/core/output_parsers";
+import { RunnableSequence } from "@langchain/core/runnables";
+
+
 
 interface ChatMessageType {
   id: number;
@@ -44,10 +55,170 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [input, setInputState] = useState('') 
   const [isLoading2, setIsLoading] = useState(false) 
-
   const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([]) // New state for chat messages
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
+  const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
+
+  // tools for ai agent
+  const tools = [
+    new DynamicTool({
+      name: "getBalance",
+      description: "Gets the SOL balance of a wallet. It doesn't require any input.",
+      func: async (input:string) => {
+        try {
+          if(!publicKey){
+            return "No wallet connected";
+          }
+          const balance = await connection.getBalance(publicKey);
+          return `Balance: ${balance / LAMPORTS_PER_SOL} SOL`;
+        } catch (error: any) {
+          return `Error: ${error.message}`;
+        }
+      },
+    }),
+    new DynamicTool({
+      name: "transferSOL",
+      description: "Transfers SOL to reciever's wallets. Input format: 'receiverPublicKey,amount'",
+      func: async (input: string) => {
+        try {
+          if (!publicKey) return "No wallet connected";
+          const [receiver, amount] = input.split(',');
+          const receiverPubKey = new PublicKey(receiver);
+          const amountLamports = parseFloat(amount) * LAMPORTS_PER_SOL;
+
+          const transaction = new Transaction().add(
+            SystemProgram.transfer({
+              fromPubkey: publicKey,
+              toPubkey: receiverPubKey,
+              lamports: amountLamports,
+            })
+          );
+          const signature = await sendTransaction(transaction, connection);
+          await connection.confirmTransaction(signature, "processed");
+          return `Transfer successful: ${signature}`;
+        } catch (error: any) {
+          return `Error: ${error.message}`;
+        }
+      },
+    }),
+    new DynamicTool({
+      name: "getTransactionCost",
+      description: "Estimates the transaction cost for a SOL transfer.",
+      func: async (input: string) => {
+        try {
+          if (!publicKey) return "No wallet connected";
+          const amount = parseFloat(input);
+          const transaction = new Transaction().add(
+            SystemProgram.transfer({
+              fromPubkey: publicKey,
+              toPubkey: publicKey,
+              lamports: amount * LAMPORTS_PER_SOL,
+            })
+          );
+          const { blockhash } = await connection.getLatestBlockhash();
+          transaction.recentBlockhash = blockhash;
+          transaction.feePayer = publicKey;
+          const estimatedFee = await transaction.getEstimatedFee(connection);
+          return `Estimated transaction cost: ${estimatedFee ? estimatedFee / LAMPORTS_PER_SOL : 0} SOL`;
+        } catch (error: any) {
+          return `Error: ${error.message}`;
+        }
+      },
+    }),
+    new DynamicTool({
+      name: "getAccountInfo",
+      description: "Gets detailed account information for a wallet.",
+      func: async (input:string) => {
+        try {
+          if (!publicKey) return "No wallet connected";
+          const accountInfo = await connection.getAccountInfo(publicKey);
+          if (accountInfo) {
+            return JSON.stringify({
+              publicKey: publicKey.toBase58(),
+              amount: accountInfo.lamports/LAMPORTS_PER_SOL,
+              executable: accountInfo.executable,
+              dataLength: accountInfo.data.length
+            }, null, 2);
+          }
+          return "Account not found";
+        } catch (error: any) {
+          return `Error: ${error.message}`;
+        }
+      },
+    }),
+  ];
+
+  // ai agent
+  async function aiAgent(input:string) {
+    const prompt = await pull<PromptTemplate>("hwchase17/react");
+    
+    // const llm = new ChatOpenAI({
+    //   temperature: 0,
+    //   model: "gpt-4o-mini",
+    //   apiKey: "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",
+    // });
+
+      const llm = new ChatGroq({
+      temperature: 0,
+      model: "llama-3.3-70b-versatile",
+      apiKey: "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",
+    });
+    
+    const agent = await createReactAgent({
+      llm,
+      tools,
+      prompt,
+    });
+    
+    const agentExecutor = new AgentExecutor({
+      agent,
+      tools,
+    });
+
+    let logs = "";
+
+    const result = await agentExecutor.invoke({
+      input: input
+    }, {
+      callbacks: [{
+        handleAgentAction(action) {
+          console.log("Action:", action);
+          logs += `Action: ${action}\n`;
+        },
+        handleAgentEnd(action) {
+          console.log("Final Answer:", action);
+          logs += `Final Answer: ${action}\n`;
+        }
+      }]
+    });
+
+    
+
+
+    console.log("Final Result:", result);
+    logs += `Final Result: ${result}\n`;
+
+    const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
+      final_result: "The final conclusion or result derived from analyzing the logs.",
+      action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
+  },);
+  const chain = RunnableSequence.from([
+    PromptTemplate.fromTemplate(
+      "Answer the users question as best as possible.\n{format_instructions}\n{question}"
+    ),
+    llm,
+    outputParser,
+  ]);
+
+  const response = await chain.invoke({
+    question: input,
+    format_instructions: outputParser.getFormatInstructions(),
+  });
+
+  return response;
+  }
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -70,7 +241,6 @@ export default function ChatPage() {
       inputRef.current?.focus()
     }, 100)
   }
-
   const navigationItems = [
     { id: 1, name: "Home", icon: <Home className="h-6 w-6 text-indigo-200" />, action: handleHomeClick },
     // { id: 2, name: "History", icon: <History className="h-6 w-6 text-indigo-200" /> },
@@ -84,30 +254,109 @@ export default function ChatPage() {
     return 'chat_' + Date.now(); // Simple unique ID based on timestamp
   }
   const [chatId, setChatId] = useState(generateUniqueId())
+
+  // Function to fetch balance
+  // const fetchBalance = async () => {
+
+  //   if (!publicKey) {
+  //     console.log("No wallet connected");
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await axios.post('http://localhost:3002/get-balance', {
+  //       publicKey: publicKey.toBase58(), // Only send the public key as a string
+  //     });
+  //     setBalance(response.data.balance);
+  //     console.log(`Balance: ${response.data.balance} SOL`);
+  //   } catch (error) {
+  //     console.error('Error fetching balance:', error);
+  //   }
+  // };
+
+  // Transfer SOL
+  // const transfer = async (receiverPublicKey: string, amount: number) => {
+  //   if (!publicKey) {
+  //     console.error("Wallet not connected");
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await axios.post('http://localhost:3002/transfer', {
+  //       senderPublicKey: publicKey.toBase58(),
+  //       receiverPublicKey,
+  //       amount,
+  //     });
+  //     console.log("Transfer response:", response.data);
+  //   } catch (error) {
+  //     console.error('Error transferring SOL:', error);
+  //   }
+  // };
+
+  // Get transaction cost
+  // const getTransactionCost = async () => {
+  //   if (!publicKey) {
+  //     console.error("No wallet connected");
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await axios.post('http://localhost:3002/get-transaction-cost', {
+  //       publicKey: publicKey.toBase58(),
+  //     });
+  //     console.log("Estimated transaction cost:", response.data.fee);
+  //   } catch (error) {
+  //     console.error('Error getting transaction cost:', error);
+  //   }
+  // };
+
+  // Get account info
+  // const getAccountInfo = async () => {
+  //   if (!publicKey) {
+  //     console.error("No wallet connected");
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await axios.post('http://localhost:3002/get-account-info', {
+  //       publicKey: publicKey.toBase58(),
+  //     });
+  //     console.log("Account Information:", response.data);
+  //   } catch (error) {
+  //     console.error('Error getting account info:', error);
+  //   }
+  // };
+
   const handleSubmitForm = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     // Prevent sending empty messages
     if (input.trim() === '') return;
-
+    if (!publicKey) {
+      console.error("No wallet connected");
+      return; // Exit if no wallet is connected
+    } 
+    setChatMessages([]);
     // Add user message to chat
     const userMessage: ChatMessageType = { id: Date.now(), role: 'user', content: input };
     setChatMessages((prev) => [...prev, userMessage]); // Update chat messages state
     setInputState(''); // Clear input immediately after submission
     setIsLoading(true); // Set loading state to true
 
-    try {
-      const response = await axios.post('http://127.0.0.1:3002/chat', {
-        chat_id: chatId,
-        user_message: input,
-      });
-
+     try {
+    //   const response = await axios.post('http://localhost:3003/chat', {
+    //     chat_id: chatId,
+    //     user_message: input,
+    //     publicKey: publicKey.toBase58(),
+    //   });
+      
+      const response = await aiAgent(userMessage.content);
       // Add robot response to chat
       const robotMessage: ChatMessageType = { 
         id: Date.now() + 1, 
         role: 'assistant', 
-        content: response.data.response,
-        actionAnalysis: response.data.action_analysis // Store action analysis
+        content: response.final_result,
+        actionAnalysis: response.action_analysis // Store action analysis
       };
       setChatMessages((prev) => [...prev, robotMessage]); // Update chat messages state
     } catch (error) {
@@ -117,95 +366,69 @@ export default function ChatPage() {
     }
   };
 
-// Get my balance
-async function getMyBalance(connection: Connection, publicKey: PublicKey, LAMPORTS_PER_SOL: number){
-  if (!publicKey) {
-    console.log("No wallet connected");
-    return;
-  }
-  const balance = await connection.getBalance(publicKey);
-  console.log(`Balance: ${balance / LAMPORTS_PER_SOL} SOL`);
+  // Transfer SOL
+  // const transfer = async (receiverPublicKey: string, amount: number) => {
+  //   if (!publicKey) {
+  //     console.error("Wallet not connected");
+  //     return;
+  //   }
 
-  }
+  //   try {
+  //     const transaction = new Transaction().add(
+  //       SystemProgram.transfer({
+  //         fromPubkey: publicKey,
+  //         toPubkey: new PublicKey(receiverPublicKey),
+  //         lamports: amount * LAMPORTS_PER_SOL,
+  //       })
+  //     );
 
-// Transfer SOL
-async function transfer(connection: Connection, receiverPublicKey: PublicKey, senderPublicKey: PublicKey, amount: number){
-    if (!senderPublicKey) {
-      console.error("Wallet not connected");
-      return;
-    }
-    const transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: senderPublicKey,
-        toPubkey: receiverPublicKey, // Sending to the same public key for demonstration
-        lamports: 0.1 * LAMPORTS_PER_SOL, // Amount in lamports
-      }));
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, "processed");
-      console.log("Transfer successful:", signature);
-  }
+  //     const { blockhash } = await connection.getLatestBlockhash();
+  //     transaction.recentBlockhash = blockhash;
+  //     transaction.feePayer = publicKey;
 
-// Recent Transactions
-// async function getRecentTransactions(connection: Connection, publicKey: PublicKey) {
-//   const transactions = await connection.getSignaturesForAddress(publicKey, { limit: 10 });
-//   console.log("Recent transactions:", transactions);
-// }
+  //     const signedTransaction = await sendTransaction(transaction, connection);
+  //     const confirmation = await connection.confirmTransaction(signedTransaction);
 
-// Transaction Cost
-async function getTransactionCost(connection: Connection, publicKey: PublicKey) {
-  if (!publicKey) {
-    console.error("No wallet connected");
-    return;
-  }
+  //     if (confirmation.value.err) {
+  //       throw new Error("Transaction failed");
+  //     }
 
-  // Create a dummy transaction to estimate the fee
-  const transaction = new Transaction().add(
-    SystemProgram.transfer({
-      fromPubkey: publicKey,
-      toPubkey: publicKey, // Sending to the same public key for demonstration
-      lamports: 0.1 * LAMPORTS_PER_SOL , // Amount in lamports
-    })
-  );
+  //     console.log("Transfer successful:", signedTransaction);
+  //     return signedTransaction;
 
-  // Fetch the recent blockhash
-  const { blockhash } = await connection.getLatestBlockhash();
-  transaction.recentBlockhash = blockhash; // Set the recent blockhash
-  transaction.feePayer = publicKey; // Set the fee payer
-
-  // Get the estimated fee for the transaction
-  const estimatedFee = await transaction.getEstimatedFee(connection);
-  const fee = estimatedFee ? estimatedFee / LAMPORTS_PER_SOL : 0;
-  console.log("Estimated transaction cost:", fee);
-}
-
+  //   } catch (error) {
+  //     console.error("Error transferring SOL:", error);
+  //     throw error;
+  //   }
+  // };
 
 
 // Account Info
-  // Get account information for a given public key
-  async function getAccountInfo(connection: Connection, publicKey: PublicKey) {
-    try {
-      // Check if public key exists
-      if (!publicKey) {
-        console.error("No wallet connected");
-        return;
-      }
+  // // Get account information for a given public key
+  // async function getAccountInfo(connection: Connection, publicKey: PublicKey) {
+  //   try {
+  //     // Check if public key exists
+  //     if (!publicKey) {
+  //       console.error("No wallet connected");
+  //       return;
+  //     }
 
-      // Fetch account info from the connection
-      const accountInfo = await connection.getAccountInfo(publicKey);
+  //     //Fetch account info from the connection
+  //     const accountInfo = await connection.getAccountInfo(publicKey);
       
-      if (accountInfo) {
-        console.log("Account Information:");
-        console.log("- Account Public Key:", publicKey.toBase58());
-        console.log("- Lamports:", accountInfo.lamports);
-        console.log("- Executable:", accountInfo.executable);
-        console.log("- Data length:", accountInfo.data.length, "bytes");
-      } else {
-        console.log("Account not found");
-      }
-    } catch (error) {
-      console.error("Error fetching account info:", error);
-    }
-  }
+  //     if (accountInfo) {
+  //       console.log("Account Information:");
+  //       console.log("- Account Public Key:", publicKey.toBase58());
+  //       console.log("- Lamports:", accountInfo.lamports);
+  //       console.log("- Executable:", accountInfo.executable);
+  //       console.log("- Data length:", accountInfo.data.length, "bytes");
+  //     } else {
+  //       console.log("Account not found");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching account info:", error);
+  //   }
+  // }
 
 
   return (
@@ -331,9 +554,10 @@ async function getTransactionCost(connection: Connection, publicKey: PublicKey) 
                 </div>
               </div>
             </motion.div>
+            
           )}
         </div>
-      </div>
+      </div> 
 
       {/* Input area - Glassmorphic style */}
       <div className="relative z-10 px-4 pb-24 mt-2 w-full max-w-4xl mx-auto">
@@ -372,8 +596,7 @@ async function getTransactionCost(connection: Connection, publicKey: PublicKey) 
                     type="submit"
                     className="bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
                   >
-                    {/* <Send className="h-5 w-5"   /> */}
-                    <button type="submit"  onClick={() => getTransactionCost(connection, publicKey)}>Submit</button>
+                    <Send className="h-5 w-5"   />
                   </motion.button>
                 </div>
               </div>
@@ -393,6 +616,7 @@ async function getTransactionCost(connection: Connection, publicKey: PublicKey) 
           <AnimatedTooltip items={navigationItems} className="flex flex-row justify-center items-center"/>
         </motion.div>
       </div>
+
     </div>
   )
 }

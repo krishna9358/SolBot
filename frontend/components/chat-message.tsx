@@ -9,6 +9,7 @@ interface ChatMessageProps {
   role: "user" | "assistant" 
   content: string
   isLast?: boolean
+  actionAnalysis?: string
 }
 
 export default function ChatMessage({ role, content, isLast = false }: ChatMessageProps) {

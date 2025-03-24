@@ -32,11 +32,12 @@ import { pull } from "langchain/hub";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatGroq } from "@langchain/groq";
 import { ChatOpenAI } from "@langchain/openai";
-import { DynamicTool } from "@langchain/core/tools";
+import { DynamicTool, tool } from "@langchain/core/tools";
 import { OpenAI } from "@langchain/openai";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
-
+import { z } from "zod";
+import { Textarea } from "@/components/ui/textarea"
 
 
 interface ChatMessageType {
@@ -52,7 +53,7 @@ export default function ChatPage() {
   const { isLoading, clearChat } = useChat()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const [input, setInputState] = useState('') 
   const [isLoading2, setIsLoading] = useState(false) 
   const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([]) // New state for chat messages
@@ -79,7 +80,7 @@ export default function ChatPage() {
     }),
     new DynamicTool({
       name: "transferSOL",
-      description: "Transfers SOL to reciever's wallets. Input format: 'receiverPublicKey,amount'",
+      description: "Transfers SOL to reciever's wallets. Input format: receiverPublicKey,amount",
       func: async (input: string) => {
         try {
           if (!publicKey) return "No wallet connected";
@@ -128,7 +129,7 @@ export default function ChatPage() {
     }),
     new DynamicTool({
       name: "getAccountInfo",
-      description: "Gets detailed account information for a wallet.",
+      description: "Gets detailed account information for a wallet. This function does not require any input.",
       func: async (input:string) => {
         try {
           if (!publicKey) return "No wallet connected";
@@ -150,74 +151,204 @@ export default function ChatPage() {
   ];
 
   // ai agent
-  async function aiAgent(input:string) {
-    const prompt = await pull<PromptTemplate>("hwchase17/react");
-    
-    // const llm = new ChatOpenAI({
-    //   temperature: 0,
-    //   model: "gpt-4o-mini",
-    //   apiKey: process.env.OPENAI_API_KEY,
-    // });
+  // "getBalance", "getTransactionCost"
+function print(input: any) {
+  console.log(input)
+}
 
-      const llm = new ChatGroq({
-      temperature: 0,
-      model: "llama-3.3-70b-versatile",
-      apiKey: process.env.GROQ_API_KEY,
-    });
-    
-    const agent = await createReactAgent({
+// const llm = new ChatGroq({
+//   temperature: 0,
+//   // model: "qwen-2.5-32b",
+//   model: "llama-3.3-70b-versatile",
+//   apiKey: "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",
+// });
+
+const llm = new ChatOpenAI({
+  temperature: 0,
+  model: "gpt-4o",
+  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+});
+
+// Need to use NEXT_PUBLIC_ prefix to access env variables on client side
+console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)
+
+// ai agent
+async function aiAgent(input: string) {
+
+  let temp = await pull<PromptTemplate>("hwchase17/react");
+
+  const customPrompt = `
+You are an intelligent Solana blockchain assistant that helps users perform operations and provide relevant information about Solana blockchain. You have access to the following tools:
+
+{tools}
+
+Important Instructions:
+- If you find yourself repeating the same actions without progress, inform the user that their query cannot be processed in its current form
+- If any required information is missing from the user's query, politely explain what's missing and ask them to provide the necessary details
+- Always verify wallet connection status before attempting operations
+- Present blockchain data in a clear, readable format
+- For transfers, confirm amount and recipient before proceeding
+
+## Most important:
+!!! Dont call any tool multiple times. or keep calling it continuosly. If a tool is called once learn its output or move to the next step. 
+!!! Please dont call any tool if it does not exist. you have only these tools: {tool_names}
+!!! Calculating transaction cost is not necessary for transferring. So if you want to trasnfer directly use transferSol function.
+!!! You dont need to confirm anything from user. Keep the execution going. 
+!!! Dont use any tool if you dont need it. 
+!!! Keep the input format same as user's query. Don't include any thing extra. There should be only input parameters of function separated by comma and nothing extra.
+!!! This one is most important of all. Do not break the following format. Whatever happens, dont break output format even if the error occurs or something went wrong or something is incomplete.  
+
+Use the following format:
+
+Task: The user's query or request to resolve
+Thought: Your reasoning about what needs to be done to fulfill the request
+Action: The tool to use (must be one of [{tool_names}])
+Action Input: The specific input to provide to the tool
+Observation: The result returned by the tool
+... (this Thought/Action/Action Input/Observation can repeat up to 5 times as needed)
+Thought: I now know the final answer
+Final Answer: Provide a clear, concise response to the user's original query with relevant information and results
+
+Begin!
+
+Task: {input}
+{agent_scratchpad}
+`
+
+  // const llm = new ChatOpenAI({
+  //   temperature: 0,
+  //   model: "gpt-4o-mini",
+  //   apiKey: process.env.OPENAI_API_KEY,
+  // });
+
+
+
+  const prompt = PromptTemplate.fromTemplate(customPrompt);
+
+  // Create the React agent
+  const agent = await createReactAgent({
       llm,
       tools,
       prompt,
-    });
-    
-    const agentExecutor = new AgentExecutor({
+  });
+
+  // Create agent executor with logging
+  const agentExecutor = new AgentExecutor({
       agent,
       tools,
-    });
+      maxIterations: 5,
+      earlyStoppingMethod: "force",
+      returnIntermediateSteps: true,
+      verbose: true,
+  });
 
-    let logs = "";
+  // Function to invoke the agent with logging
 
-    const result = await agentExecutor.invoke({
-      input: input
-    }, {
-      callbacks: [{
-        handleAgentAction(action) {
-          console.log("Action:", action);
-          logs += `Action: ${action}\n`;
-        },
-        handleAgentEnd(action) {
-          console.log("Final Answer:", action);
-          logs += `Final Answer: ${action}\n`;
-        }
-      }]
-    });
+  let logs = "";
 
-    
+  const result = await agentExecutor.invoke(
+      { input },
+      {
+          callbacks: [
+              {
+                  handleAgentAction(action) {
+                      const actionLog = `Action: ${action.tool}\nAction Input: ${action.toolInput}\n`;
+                      logs += actionLog;
+                      // console.log(actionLog);
+                      // onLog(actionLog);
+                  },
+                  handleToolEnd(output) {
+                      const observationLog = `Observation: ${output.output}\n`;
+                      logs += observationLog;
+                      // console.log(observationLog);
+                      // onLog(observationLog);
+                  },
+                  handleAgentEnd(action) {
+                      const finalAnswerLog = `Final Answer: ${action.returnValues.output}\n`;
+                      logs += finalAnswerLog;
+                      // console.log(finalAnswerLog);
+                      // onLog(finalAnswerLog);
+                  }
+              }
+          ]
+      }
+  );
+
+  // Add final result to logs
+  logs += `Final Result: ${JSON.stringify(result)}\n`;
 
 
-    console.log("Final Result:", result);
-    logs += `Final Result: ${result}\n`;
+  // console.log("Final Result:", result);
+  // logs += `Final Result: ${result}\n`;
 
-    const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
+
+  const structure = z.object({
+      final_result: z.string().describe("A string which is The final conclusion or response that should be given to user based on his message and all that process that has been done."),
+      action_analysis: z.array(z.string()).describe("A list of strings where each string is an action taken or step performed. It should contain brief description of each important step."),
+  });
+
+  const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
       final_result: "The final conclusion or result derived from analyzing the logs.",
       action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
   },);
-  const chain = RunnableSequence.from([
-    PromptTemplate.fromTemplate(
-      "Answer the users question as best as possible.\n{format_instructions}\n{question}"
-    ),
-    llm,
-    outputParser,
-  ]);
+  console.log("logs: ", logs)
+  // return
+  let pr2 = `
+You are an intelligent Solana blockchain assistant, responsible for analyzing executed actions and providing users with a comprehensive yet concise final response. You will be given the user's query and all the logs of process done to resolve that query. assess the sequence of actions, their dependencies, and the overall results to generate a user-friendly summary. Please understand the context of conversation properly. 
+## Give proper action analysis and steps taken to resolve the query like if getbalance function is called then in actionanalysis getbalance
+## In the final result make sure you are answering user's query and it should have proper response.
 
-  const response = await chain.invoke({
-    question: input,
-    format_instructions: outputParser.getFormatInstructions(),
-  });
 
-  return response;
-  }
+The following tools could have been used in the logs.
+1.	getBalance
+•	Gets the SOL balance of a wallet. It doesn't require any input.
+2.	transferSOL
+•	Transfers SOL to reciever's wallets.
+3.	getTransactionCost
+• Estimates the transaction cost for a SOL transfer.
+4. getAccountInfo
+• Gets detailed account information for a wallet.
+
+📌 User Query:
+"${input}"
+
+Actions taken to resolve user's query:
+${logs}
+
+
+
+Key Instructions :
+1.	Understand the User's Intent:
+•	Read User Query carefully to understand what the user wanted.
+2.	Analyze the Actions Taken:
+•	Examine Actions executed to determine how the request was fulfilled.
+3.	Generate a Final Summary:
+•	Explain in a few bullet points what was accomplished in a structured way.
+4.	Construct a Final Response:
+•	Provide a natural, conversational response to the user confirming what was done.
+
+  !!! Most Importantly
+### Strictly follow the output structure at any cost
+### In action analysis you dont need to return the name of the tools you have to return list of actions summary that are done.
+
+Example of action analysis:
+1. Balance of wallet was retrieved and found to be 1.2.
+2. account info of users' account was fetched.
+
+
+      `
+
+  // print(pr2)
+  // return
+  const structuredLlm = llm.withStructuredOutput(structure);
+
+  let response = await structuredLlm.invoke(pr2);
+  print(response)
+  return response
+ 
+}
+
+
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -351,12 +482,13 @@ export default function ChatPage() {
     //   });
       
       const response = await aiAgent(userMessage.content);
+      // const parsedResponse = response.toString();
       // Add robot response to chat
       const robotMessage: ChatMessageType = { 
-        id: Date.now() + 1, 
-        role: 'assistant', 
+        id: Date.now() + 1,
+        role: 'assistant',
         content: response.final_result,
-        actionAnalysis: response.action_analysis // Store action analysis
+        actionAnalysis: response.action_analysis.join('\n') // Parse and join array into string
       };
       setChatMessages((prev) => [...prev, robotMessage]); // Update chat messages state
     } catch (error) {
@@ -435,7 +567,7 @@ export default function ChatPage() {
     <div className="relative flex flex-col h-screen overflow-hidden bg-gradient-to-br from-purple-950 via-indigo-950 to-blue-950">
       {/* Animated background */}
       <WavyBackground className="absolute inset-0 z-0 opacity-30" />
-
+      
       {/* Header */}
       <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-xl p-4">
         <div className="flex items-center justify-between">
@@ -502,9 +634,9 @@ export default function ChatPage() {
               <AnimatePresence initial={false}>
                 {chatMessages.map((message, index) => (
                   <div key={message.id}>
-                    <ChatMessage
-                      role={message.role as "user" | "assistant"}
-                      content={message.content}
+            <ChatMessage
+              role={message.role as "user" | "assistant"}
+              content={message.content}
                       isLast={index === chatMessages.length - 1}
                     />
                     {message.actionAnalysis && (
@@ -557,7 +689,7 @@ export default function ChatPage() {
             
           )}
         </div>
-      </div> 
+      </div>
 
       {/* Input area - Glassmorphic style */}
       <div className="relative z-10 px-4 pb-24 mt-2 w-full max-w-4xl mx-auto">
@@ -579,30 +711,36 @@ export default function ChatPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-indigo-500/10 to-blue-500/10 animate-gradient-x"></div>
               </div>
               <div className="relative flex items-center">
-                <Input
+          <Textarea
                   ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInputState(e.target.value)} // Update local input state
+            value={input}
+                  onChange={(e) => setInputState(e.target.value)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   placeholder="Type your message..."
-                  className="w-full bg-transparent border-none focus-visible:ring-0 rounded-2xl py-6 px-6 text-lg font-medium text-white placeholder:text-indigo-200/50 h-auto"
+                  className="w-full bg-transparent border-none focus-visible:ring-0 rounded-2xl py-4 px-6 text-base md:text-lg font-medium text-white placeholder:text-indigo-200/50 min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
+                  rows={1}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
+                  }}
                 />
                 <div className="absolute right-4 flex items-center gap-2">
 
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    type="submit"
+            type="submit"
                     className="bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
                   >
                     <Send className="h-5 w-5"   />
                   </motion.button>
                 </div>
               </div>
-            </div>
+        </div>
           </motion.div>
-        </form>
+      </form>
       </div>
 
       {/* Bottom navigation */}

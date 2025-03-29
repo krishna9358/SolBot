@@ -1,13 +1,14 @@
 "use client"
 
+import { ReactNode } from 'react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { MessageCircle, User } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface ChatMessageProps {
-  role: "user" | "assistant" 
-  content: string
+  role: "user" | "assistant"
+  content: string | ReactNode
   isLast?: boolean
   actionAnalysis?: string
 }
@@ -54,7 +55,9 @@ export default function ChatMessage({ role, content, isLast = false }: ChatMessa
           <div className={cn("font-medium mb-1 text-sm", role === "assistant" ? "text-violet-200" : "text-blue-200")}>
             {role === "assistant" ? "SolBot" : "You"}
           </div>
-          <div className="text-white/90 leading-relaxed">{content}</div>
+          <div className="prose prose-invert max-w-none text-white/90 leading-relaxed">
+            {typeof content === 'string' ? content : content}
+          </div>
         </div>
       </div>
 

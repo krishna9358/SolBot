@@ -38,6 +38,8 @@ import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea"
+import { clear } from "console"
+import ReactMarkdown from 'react-markdown'
 
 
 interface ChatMessageType {
@@ -105,7 +107,7 @@ export default function ChatPage() {
     }),
     new DynamicTool({
       name: "getTransactionCost",
-      description: "Estimates the transaction cost for a SOL transfer.",
+      description: "Estimates the transaction cost for a SOL transfer. This tool doesn't require any input.",
       func: async (input: string) => {
         try {
           if (!publicKey) return "No wallet connected";
@@ -148,6 +150,16 @@ export default function ChatPage() {
         }
       },
     }),
+    new DynamicTool({
+      name: "getFinancialAdvice",
+      description: "Provides financial advice about a crypto coin based on the user's query. The query should be about only one coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'.  Input format: query.",
+      func: async (input: string) => {
+        const response = await axios.post('http://localhost:5002/analyze', {
+          user_query: input
+        });
+        return JSON.stringify(response.data);
+      },
+    }),
   ];
 
   // ai agent
@@ -170,7 +182,7 @@ const llm = new ChatOpenAI({
 });
 
 // Need to use NEXT_PUBLIC_ prefix to access env variables on client side
-console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)
+// console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)
 
 // ai agent
 async function aiAgent(input: string) {
@@ -189,6 +201,12 @@ Important Instructions:
 - Present blockchain data in a clear, readable format
 - For transfers, confirm amount and recipient before proceeding
 
+## Important Instructions for "getFinancialAdvice" tool:
+!!! This tool can have query about a single coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'. 
+!!! If user asks for financial advice about multiple coins, First call this tool querying about first coin then second coin and so on.
+!!! Dont call this tool multiple times. If output is already available about a coin then don't call this tool again for that coin.
+
+
 ## Most important:
 !!! Dont call any tool multiple times. or keep calling it continuosly. If a tool is called once learn its output or move to the next step. 
 !!! Please dont call any tool if it does not exist. you have only these tools: {tool_names}
@@ -196,7 +214,9 @@ Important Instructions:
 !!! You dont need to confirm anything from user. Keep the execution going. 
 !!! Dont use any tool if you dont need it. 
 !!! Keep the input format same as user's query. Don't include any thing extra. There should be only input parameters of function separated by comma and nothing extra.
-!!! This one is most important of all. Do not break the following format. Whatever happens, dont break output format even if the error occurs or something went wrong or something is incomplete.  
+!!! This one is most important of all. Do not break the following format. Whatever happens, dont break output format even if the error occurs or something went wrong or something is incomplete.
+
+
 
 Use the following format:
 
@@ -291,6 +311,7 @@ Task: {input}
       final_result: "The final conclusion or result derived from analyzing the logs.",
       action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
   },);
+  console.clear();
   console.log("logs: ", logs)
   // return
   let pr2 = `
@@ -308,6 +329,8 @@ The following tools could have been used in the logs.
 • Estimates the transaction cost for a SOL transfer.
 4. getAccountInfo
 • Gets detailed account information for a wallet.
+5. getFinancialAdvice
+• Provides financial advice about a crypto coin based on the user's query.
 
 📌 User Query:
 "${input}"
@@ -330,11 +353,30 @@ Key Instructions :
   !!! Most Importantly
 ### Strictly follow the output structure at any cost
 ### In action analysis you dont need to return the name of the tools you have to return list of actions summary that are done.
+### If you see financial advice is being asked and financial advice tool is called , it gives structure output having the following parameters:
+    action: Literal["BUY", "HODL", "SELL"] = Field(
+        description="Action to take with the chosen cryptocurrency"
+    )
+    score: int = Field(
+        description="Bullishness market score between 0 (extremely bearish) and 100 (extremely bullish)"
+    )
+    trend: Literal["UP", "NEUTRAL", "DOWN"] = Field(
+        description="Price trend for the chosen cryptocurrency",
+    )
+    sentiment: Literal["GREED", "NEUTRAL", "FEAR"] = Field(
+        description="Sentiment from the news for the chosen cryptocurrency"
+    )
+    price_predictions: List[float] = Field(
+        description="Price predictions for 1, 2, 3 and 4 weeks ahead"
+    )
+    summary: str = Field(
+        description="Summary of the current market conditions (1-3 sentences)"
+    ) 
+  If logs have these values try to answer user's query giving these values in structured presentable formate which looks clean and analytical. If comparision between multiple coin  is asked display the numerical value relevant to user's query for each coin.   
 
 Example of action analysis:
 1. Balance of wallet was retrieved and found to be 1.2.
 2. account info of users' account was fetched.
-
 
       `
 
@@ -634,9 +676,15 @@ Example of action analysis:
               <AnimatePresence initial={false}>
                 {chatMessages.map((message, index) => (
                   <div key={message.id}>
-            <ChatMessage
-              role={message.role as "user" | "assistant"}
-              content={message.content}
+                    <ChatMessage
+                      role={message.role as "user" | "assistant"}
+                      content={
+                        message.role === 'assistant' ? (
+                          <ReactMarkdown>
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : message.content
+                      }
                       isLast={index === chatMessages.length - 1}
                     />
                     {message.actionAnalysis && (
@@ -644,7 +692,6 @@ Example of action analysis:
                         <button
                           className="text-blue-500"
                           onClick={() => {
-                            // Toggle action analysis display
                             const actionAnalysisElement = document.getElementById(`action-analysis-${message.id}`);
                             if (actionAnalysisElement) {
                               actionAnalysisElement.classList.toggle('hidden');
@@ -654,14 +701,9 @@ Example of action analysis:
                           {message.actionAnalysis ? 'Show Action Analysis' : 'Hide Action Analysis'}
                         </button>
                         <div id={`action-analysis-${message.id}`} className="hidden">
-                          <p className="text-gray-400">
-                            {message.actionAnalysis.split('\n').map((line, idx) => (
-                              <span key={idx}>
-                                 {line}
-                                <br />
-                              </span>
-                            ))}
-                          </p>
+                          <ReactMarkdown>
+                            {message.actionAnalysis}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}

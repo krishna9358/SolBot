@@ -5,3 +5,6 @@ langchain_community
 agentipy
 streamlit
 python-dotenv
+flask-cors
+flask
+requests

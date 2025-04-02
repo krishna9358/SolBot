@@ -49,6 +49,33 @@ interface ChatMessageType {
   actionAnalysis?: string; // Optional field for action analysis
 }
 
+const LoadingText = () => {
+  const keywords = [
+    "Scanning the web for the latest and most relevant information...",
+    "Leveraging AI-powered tools and APIs for real-time data retrieval...",
+    "Parsing structured and unstructured data for deeper analysis...",
+    "Utilizing NLP and machine learning algorithms to extract insights...",
+    "Optimizing response generation using context-aware reasoning...",
+    "Cross-referencing multiple sources to ensure accuracy and relevance...",
+    "Executing complex computations and knowledge synthesis...",
+    "Enhancing response quality with AI-driven pattern recognition...",
+    "Adapting insights based on user preferences and intent..."
+  ];
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % keywords.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-indigo-400 text-sm animate-fade-in-out">
+      {keywords[currentIndex]}
+    </span>
+  );
+};
 
 export default function ChatPage() {
   const router = useRouter()
@@ -721,14 +748,11 @@ Example of action analysis:
               className="flex justify-start ml-12"
             >
               <div className="bg-black/20 backdrop-blur-md p-3 rounded-full border border-indigo-500/20 shadow-glow-sm">
-                <div className="flex space-x-2">
-                  <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse"></div>
-                  <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse delay-150"></div>
-                  <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse delay-300"></div>
+                <div className="flex items-center space-x-2">
+                  <LoadingText />
                 </div>
               </div>
             </motion.div>
-            
           )}
         </div>
       </div>

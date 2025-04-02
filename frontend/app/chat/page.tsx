@@ -49,6 +49,29 @@ interface ChatMessageType {
   actionAnalysis?: string; // Optional field for action analysis
 }
 
+const LoadingText = () => {
+  const keywords = [
+    "Searching the web...",
+    "Using tools...",
+    "Thinking...",
+    "Analyzing data...",
+    "Generating response..."
+  ];
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % keywords.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-indigo-400 text-sm animate-fade-in-out">
+      {keywords[currentIndex]}
+    </span>
+  );
+};
 
 export default function ChatPage() {
   const router = useRouter()
@@ -721,14 +744,12 @@ Example of action analysis:
               className="flex justify-start ml-12"
             >
               <div className="bg-black/20 backdrop-blur-md p-3 rounded-full border border-indigo-500/20 shadow-glow-sm">
-                <div className="flex space-x-2">
+                <div className="flex items-center space-x-2">
                   <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse"></div>
-                  <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse delay-150"></div>
-                  <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse delay-300"></div>
+                  <LoadingText />
                 </div>
               </div>
             </motion.div>
-            
           )}
         </div>
       </div>

@@ -51,18 +51,22 @@ interface ChatMessageType {
 
 const LoadingText = () => {
   const keywords = [
-    "Searching the web...",
-    "Using tools...",
-    "Thinking...",
-    "Analyzing data...",
-    "Generating response..."
+    "Scanning the web for the latest and most relevant information...",
+    "Leveraging AI-powered tools and APIs for real-time data retrieval...",
+    "Parsing structured and unstructured data for deeper analysis...",
+    "Utilizing NLP and machine learning algorithms to extract insights...",
+    "Optimizing response generation using context-aware reasoning...",
+    "Cross-referencing multiple sources to ensure accuracy and relevance...",
+    "Executing complex computations and knowledge synthesis...",
+    "Enhancing response quality with AI-driven pattern recognition...",
+    "Adapting insights based on user preferences and intent..."
   ];
   const [currentIndex, setCurrentIndex] = useState(0);
   
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % keywords.length);
-    }, 2000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -745,7 +749,6 @@ Example of action analysis:
             >
               <div className="bg-black/20 backdrop-blur-md p-3 rounded-full border border-indigo-500/20 shadow-glow-sm">
                 <div className="flex items-center space-x-2">
-                  <div className="h-2.5 w-2.5 bg-indigo-400 rounded-full animate-pulse"></div>
                   <LoadingText />
                 </div>
               </div>

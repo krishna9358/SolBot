@@ -40,6 +40,7 @@ import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea"
 import { clear } from "console"
 import ReactMarkdown from 'react-markdown'
+import { VideoBackground } from "@/components/ui/video-background"
 
 
 interface ChatMessageType {
@@ -48,6 +49,8 @@ interface ChatMessageType {
   content: string;
   actionAnalysis?: string; // Optional field for action analysis
 }
+
+
 
 const LoadingText = () => {
   const keywords = [
@@ -89,6 +92,14 @@ export default function ChatPage() {
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
+
+  // Check wallet connection on page load
+  useEffect(() => {
+    if (!publicKey) {
+      console.error("No wallet connected");
+      router.push("/");
+    }
+  }, [publicKey, router]);
 
   // tools for ai agent
   const tools = [
@@ -534,6 +545,7 @@ Example of action analysis:
     if (input.trim() === '') return;
     if (!publicKey) {
       console.error("No wallet connected");
+      router.push("/")
       return; // Exit if no wallet is connected
     } 
     setChatMessages([]);
@@ -633,12 +645,12 @@ Example of action analysis:
 
 
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden bg-gradient-to-br from-purple-950 via-indigo-950 to-blue-950">
-      {/* Animated background */}
-      <WavyBackground className="absolute inset-0 z-0 opacity-30" />
+    <div className="relative flex flex-col h-screen overflow-hidden">
+      {/* Video Background */}
+      <VideoBackground />
       
       {/* Header */}
-      <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-xl p-4">
+      <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-r from-violet-600 to-blue-500 p-2 rounded-full shadow-glow-sm">

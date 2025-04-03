@@ -10,6 +10,8 @@ import {
   // Mic,
   Sparkles,
   Send,
+  ExternalLink,
+  BookOpen,
   // BookOpen,
   // History,
   // BarChart3,
@@ -41,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { clear } from "console"
 import ReactMarkdown from 'react-markdown'
 import { VideoBackground } from "@/components/ui/video-background"
+import { RiTwitterXFill } from "react-icons/ri"
 
 
 interface ChatMessageType {
@@ -657,7 +660,7 @@ Example of action analysis:
               <MessageCircle className="h-6 w-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-blue-300">
-              SolBot
+            GAIA
             </span>
           </div>
           <motion.button
@@ -831,7 +834,35 @@ Example of action analysis:
         >
           <AnimatedTooltip items={navigationItems} className="flex flex-row justify-center items-center"/>
         </motion.div>
+         
       </div>
+      {/* Social Media Icons */}
+      <div className="fixed bottom-6 right-6 flex flex-row gap-4 z-20">
+          <a 
+            href="https://twitter.com/your_twitter" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 text-[#2596be] hover:text-white transition-all duration-300"
+          >
+            <RiTwitterXFill className="h-5 w-5" />
+          </a>
+          <a 
+            href="https://dexscreener.com/your_dex" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 text-[#2596be] hover:text-white transition-all duration-300"
+          >
+            <ExternalLink className="h-5 w-5" />
+          </a>
+          <a 
+            href="https://docs.your_project.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 text-[#2596be] hover:text-white transition-all duration-300"
+          >
+            <BookOpen className="h-5 w-5" />
+          </a>
+        </div>
 
     </div>
   )

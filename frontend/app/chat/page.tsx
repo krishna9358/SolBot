@@ -57,15 +57,16 @@ interface ChatMessageType {
 
 const LoadingText = () => {
   const keywords = [
-    "Scanning the web for the latest and most relevant information...",
-    "Leveraging AI-powered tools and APIs for real-time data retrieval...",
-    "Parsing structured and unstructured data for deeper analysis...",
-    "Utilizing NLP and machine learning algorithms to extract insights...",
-    "Optimizing response generation using context-aware reasoning...",
-    "Cross-referencing multiple sources to ensure accuracy and relevance...",
-    "Executing complex computations and knowledge synthesis...",
-    "Enhancing response quality with AI-driven pattern recognition...",
-    "Adapting insights based on user preferences and intent..."
+   "Processing your request with AI-powered automation...",
+   "Communicating with  blockchain for real-time data...",
+    "Retrieving and analyzing the required information...",
+   "Ensuring accuracy and security while handling your request...",
+   "Optimizing data retrieval for a seamless experience...",
+   "Executing necessary operations on the blockchain...",
+   "Fetching relevant details while maintaining efficiency...",
+   "Applying smart algorithms to streamline your request...",
+   "Verifying and structuring the response for clarity...",
+"Finalizing the results—almost there!"
   ];
   const [currentIndex, setCurrentIndex] = useState(0);
   

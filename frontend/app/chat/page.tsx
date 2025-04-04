@@ -10,6 +10,8 @@ import {
   // Mic,
   Sparkles,
   Send,
+  ExternalLink,
+  BookOpen,
   // BookOpen,
   // History,
   // BarChart3,
@@ -40,6 +42,8 @@ import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea"
 import { clear } from "console"
 import ReactMarkdown from 'react-markdown'
+import { VideoBackground } from "@/components/ui/video-background"
+import { RiTwitterXFill } from "react-icons/ri"
 
 
 interface ChatMessageType {
@@ -48,6 +52,8 @@ interface ChatMessageType {
   content: string;
   actionAnalysis?: string; // Optional field for action analysis
 }
+
+
 
 const LoadingText = () => {
   const keywords = [
@@ -89,6 +95,14 @@ export default function ChatPage() {
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
+
+  // Check wallet connection on page load
+  useEffect(() => {
+    if (!publicKey) {
+      console.error("No wallet connected");
+      router.push("/");
+    }
+  }, [publicKey, router]);
 
   // tools for ai agent
   const tools = [
@@ -534,6 +548,7 @@ Example of action analysis:
     if (input.trim() === '') return;
     if (!publicKey) {
       console.error("No wallet connected");
+      router.push("/")
       return; // Exit if no wallet is connected
     } 
     setChatMessages([]);
@@ -633,19 +648,19 @@ Example of action analysis:
 
 
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden bg-gradient-to-br from-purple-950 via-indigo-950 to-blue-950">
-      {/* Animated background */}
-      <WavyBackground className="absolute inset-0 z-0 opacity-30" />
+    <div className="relative flex flex-col h-screen overflow-hidden">
+      {/* Video Background */}
+      <VideoBackground />
       
       {/* Header */}
-      <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-xl p-4">
+      <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-r from-violet-600 to-blue-500 p-2 rounded-full shadow-glow-sm">
+            <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596be] p-2 rounded-full shadow-glow-sm">
               <MessageCircle className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-blue-300">
-              SolBot
+            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#2596be]/90 to-[#2596be]">
+            GAIA
             </span>
           </div>
           <motion.button
@@ -657,7 +672,7 @@ Example of action analysis:
             <PlusCircle className="h-4 w-4 text-indigo-300" />
             <span className="text-indigo-100">New Chat</span>
           </motion.button>
-          <WalletMultiButton />
+          <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
         </div>
       </header>
 
@@ -674,7 +689,7 @@ Example of action analysis:
                   className="relative w-32 h-32 mx-auto"
                 >
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-gradient-to-r from-violet-600 to-blue-600 p-5 rounded-full shadow-glow-lg animate-pulse-slow">
+                    <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596bf] p-5 rounded-full shadow-glow-lg animate-pulse-slow">
                       <Sparkles className="h-14 w-14 text-white" />
                     </div>
                   </div>
@@ -797,10 +812,10 @@ Example of action analysis:
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-            type="submit"
-                    className="bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
+                    type="submit"
+                    className="bg-gradient-to-r from-[#2596be] to-[#1a7a9e] text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
                   >
-                    <Send className="h-5 w-5"   />
+                    <Send className="h-5 w-5 "   />
                   </motion.button>
                 </div>
               </div>
@@ -819,7 +834,35 @@ Example of action analysis:
         >
           <AnimatedTooltip items={navigationItems} className="flex flex-row justify-center items-center"/>
         </motion.div>
+         
       </div>
+      {/* Social Media Icons */}
+      <div className="fixed bottom-6 right-6 flex flex-row gap-4 z-20">
+          <a 
+            href="https://twitter.com/your_twitter" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 text-[#2596be] hover:text-white transition-all duration-300"
+          >
+            <RiTwitterXFill className="h-5 w-5" />
+          </a>
+          <a 
+            href="https://dexscreener.com/your_dex" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 text-[#2596be] hover:text-white transition-all duration-300"
+          >
+            <ExternalLink className="h-5 w-5" />
+          </a>
+          <a 
+            href="https://docs.your_project.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 text-[#2596be] hover:text-white transition-all duration-300"
+          >
+            <BookOpen className="h-5 w-5" />
+          </a>
+        </div>
 
     </div>
   )

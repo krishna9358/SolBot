@@ -19,14 +19,14 @@ export default function PromptSuggestions({ onSuggestionClick }: PromptSuggestio
       prompt: "transfer 0.1 sol to wallet id ",
     },
     {
-      title: "Productivity Helper",
-      description: "Optimize your workflow",
-      prompt: "Help me create a productivity system for managing my projects and tasks.",
+      title: "Should I buy Solana today?",
+      description: "Get the latest news and analysis on Solana",
+      prompt: "Should I buy Solana today?",
     },
     {
-      title: "Coding Partner",
-      description: "Get help with programming",
-      prompt: "How do I implement a dark mode toggle in a React application?",
+      title: "What is the price of Solana today?",
+      description: "Get the latest price of Solana",
+      prompt: "What is the price of Solana today?",
     },
   ]
 

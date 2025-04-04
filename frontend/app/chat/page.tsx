@@ -656,10 +656,10 @@ Example of action analysis:
       <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-r from-violet-600 to-blue-500 p-2 rounded-full shadow-glow-sm">
+            <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596be] p-2 rounded-full shadow-glow-sm">
               <MessageCircle className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-blue-300">
+            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#2596be]/90 to-[#2596be]">
             GAIA
             </span>
           </div>
@@ -672,7 +672,7 @@ Example of action analysis:
             <PlusCircle className="h-4 w-4 text-indigo-300" />
             <span className="text-indigo-100">New Chat</span>
           </motion.button>
-          <WalletMultiButton />
+          <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
         </div>
       </header>
 
@@ -689,7 +689,7 @@ Example of action analysis:
                   className="relative w-32 h-32 mx-auto"
                 >
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-gradient-to-r from-violet-600 to-blue-600 p-5 rounded-full shadow-glow-lg animate-pulse-slow">
+                    <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596bf] p-5 rounded-full shadow-glow-lg animate-pulse-slow">
                       <Sparkles className="h-14 w-14 text-white" />
                     </div>
                   </div>
@@ -812,10 +812,10 @@ Example of action analysis:
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-            type="submit"
-                    className="bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
+                    type="submit"
+                    className="bg-gradient-to-r from-[#2596be] to-[#1a7a9e] text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
                   >
-                    <Send className="h-5 w-5"   />
+                    <Send className="h-5 w-5 "   />
                   </motion.button>
                 </div>
               </div>

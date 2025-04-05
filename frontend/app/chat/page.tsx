@@ -57,15 +57,16 @@ interface ChatMessageType {
 
 const LoadingText = () => {
   const keywords = [
-    "Scanning the web for the latest and most relevant information...",
-    "Leveraging AI-powered tools and APIs for real-time data retrieval...",
-    "Parsing structured and unstructured data for deeper analysis...",
-    "Utilizing NLP and machine learning algorithms to extract insights...",
-    "Optimizing response generation using context-aware reasoning...",
-    "Cross-referencing multiple sources to ensure accuracy and relevance...",
-    "Executing complex computations and knowledge synthesis...",
-    "Enhancing response quality with AI-driven pattern recognition...",
-    "Adapting insights based on user preferences and intent..."
+   "Processing your request with AI-powered automation...",
+   "Communicating with  blockchain for real-time data...",
+    "Retrieving and analyzing the required information...",
+   "Ensuring accuracy and security while handling your request...",
+   "Optimizing data retrieval for a seamless experience...",
+   "Executing necessary operations on the blockchain...",
+   "Fetching relevant details while maintaining efficiency...",
+   "Applying smart algorithms to streamline your request...",
+   "Verifying and structuring the response for clarity...",
+"Finalizing the results—almost there!"
   ];
   const [currentIndex, setCurrentIndex] = useState(0);
   
@@ -227,10 +228,10 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
+  try {
+    let temp = await pull<PromptTemplate>("hwchase17/react");
 
-  let temp = await pull<PromptTemplate>("hwchase17/react");
-
-  const customPrompt = `
+    const customPrompt = `
 You are an intelligent Solana blockchain assistant that helps users perform operations and provide relevant information about Solana blockchain. You have access to the following tools:
 
 {tools}
@@ -286,22 +287,22 @@ Task: {input}
 
   const prompt = PromptTemplate.fromTemplate(customPrompt);
 
-  // Create the React agent
-  const agent = await createReactAgent({
-      llm,
-      tools,
-      prompt,
-  });
+    // Create the React agent
+    const agent = await createReactAgent({
+        llm,
+        tools,
+        prompt,
+    });
 
-  // Create agent executor with logging
-  const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-      maxIterations: 5,
-      earlyStoppingMethod: "force",
-      returnIntermediateSteps: true,
-      verbose: true,
-  });
+    // Create agent executor with logging
+    const agentExecutor = new AgentExecutor({
+        agent,
+        tools,
+        maxIterations: 5,
+        earlyStoppingMethod: "force",
+        returnIntermediateSteps: true,
+        verbose: true,
+    });
 
   // Function to invoke the agent with logging
 
@@ -335,8 +336,8 @@ Task: {input}
       }
   );
 
-  // Add final result to logs
-  logs += `Final Result: ${JSON.stringify(result)}\n`;
+    // Add final result to logs
+    logs += `Final Result: ${JSON.stringify(result)}\n`;
 
 
   // console.log("Final Result:", result);
@@ -425,10 +426,17 @@ Example of action analysis:
   // return
   const structuredLlm = llm.withStructuredOutput(structure);
 
-  let response = await structuredLlm.invoke(pr2);
-  print(response)
-  return response
- 
+    let response = await structuredLlm.invoke(pr2);
+    print(response)
+    return response
+  } catch (error) {
+    console.error("Error in AI agent:", error);
+    // Return a fallback response in case of any error
+    return {
+      final_result: "I apologize, but I encountered an error while processing your request. Please try again or rephrase your question.",
+      action_analysis: ["An error occurred during processing"]
+    };
+  }
 }
 
 
@@ -566,7 +574,12 @@ Example of action analysis:
     //   });
       
       const response = await aiAgent(userMessage.content);
-      // const parsedResponse = response.toString();
+      
+      // Check if response is valid
+      if (!response || !response.final_result || !response.action_analysis) {
+        throw new Error("Invalid response from AI agent");
+      }
+      
       // Add robot response to chat
       const robotMessage: ChatMessageType = { 
         id: Date.now() + 1,
@@ -577,6 +590,15 @@ Example of action analysis:
       setChatMessages((prev) => [...prev, robotMessage]); // Update chat messages state
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Add error message to chat
+      const errorMessage: ChatMessageType = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: "I apologize, but I encountered an error while processing your request. Please try again or rephrase your question.",
+        actionAnalysis: "An error occurred during processing"
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false); // Reset loading state
     }

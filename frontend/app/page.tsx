@@ -33,17 +33,17 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col justify-center min-h-screen relative">
             {/* Left container */}
-            <div className="w-1/2 ml-0">
+            <div className="w-full md:w-1/2 ml-0">
               <div className="text-center">
-                <h1 className="text-4xl md:text-7xl font-bold tracking-tight mb-8 text-[#2596be]">
+                <h1 className="text-3xl sm:text-4xl md:text-7xl font-bold tracking-tight mb-4 md:mb-8 text-[#2596be]">
                   GAIA{" "}
                 </h1>
-                <p className="mt-6 text-xl text-[#2596be] max-w-2xl mx-auto leading-relaxed">
+                <p className="mt-4 md:mt-6 text-lg md:text-xl text-[#2596be] max-w-2xl mx-auto leading-relaxed px-4">
                   CHAT WITH GAIA, YOUR INTELLIGENT ASSISTANT FOR REAL-TIME INSHIGHTS, STRATEGY, AND AUTOMATION
                 </p>
 
                 {/* Enhanced CTA buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 mt-12 justify-center">
+                <div className="flex flex-col sm:flex-row gap-4 mt-8 md:mt-12 justify-center">
                   {/* <Button
                     size="lg"
                     className="relative bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white border-0 px-8 py-6 text-lg font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_8px_rgba(139,92,246,0.25)] rounded-xl group"
@@ -61,7 +61,7 @@ export default function Home() {
                   >
                     Learn More
                   </Button> */}
-                  <div className="bg-transparent border-1xl" style={{ border: '1px solid #2596be', borderRadius: '0.5rem' }} >
+                  <div className="bg-transparent border-1xl mx-auto sm:mx-0" style={{ border: '1px solid #2596be', borderRadius: '0.5rem' }} >
                     <WalletMultiButton style={{ backgroundColor: '#0c1434', color: '#2596be', border: '1px solid #2596be', borderRadius: '0.5rem' }} />
                   </div>
                 </div>
@@ -71,7 +71,7 @@ export default function Home() {
         </div>
 
         {/* Social Media Icons */}
-        <div className="fixed bottom-6 right-6 flex flex-row gap-4 z-20">
+        <div className="fixed bottom-4 md:bottom-6 right-4 md:right-6 flex flex-row gap-3 md:gap-4 z-20">
           <a 
             href="https://twitter.com/your_twitter" 
             target="_blank" 

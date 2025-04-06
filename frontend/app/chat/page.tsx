@@ -196,7 +196,7 @@ export default function ChatPage() {
       name: "getFinancialAdvice",
       description: "Provides financial advice about a crypto coin based on the user's query. The query should be about only one coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'.  Input format: query.",
       func: async (input: string) => {
-        const response = await axios.post('https://b2a8-106-219-68-248.ngrok-free.app/analyze', {
+        const response = await axios.post('https://solbot-production-82ef.up.railway.app/analyze', {
           user_query: input
         });
         return JSON.stringify(response.data);

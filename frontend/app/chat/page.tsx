@@ -675,13 +675,13 @@ Example of action analysis:
       <VideoBackground />
       
       {/* Header */}
-      <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl p-4">
+      <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl p-2 md:p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596be] p-2 rounded-full shadow-glow-sm">
-              <MessageCircle className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596be] p-1.5 md:p-2 rounded-full shadow-glow-sm">
+              <MessageCircle className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#2596be]/90 to-[#2596be]">
+            <span className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#2596be]/90 to-[#2596be]">
             GAIA
             </span>
           </div>
@@ -689,9 +689,9 @@ Example of action analysis:
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNewChat}
-            className="bg-black/30 hover:bg-black/40 text-white font-medium py-2 px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-2 shadow-glow-sm"
+            className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
           >
-            <PlusCircle className="h-4 w-4 text-indigo-300" />
+            <PlusCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-300" />
             <span className="text-indigo-100">New Chat</span>
           </motion.button>
           <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
@@ -699,20 +699,20 @@ Example of action analysis:
       </header>
 
       {/* Main content */}
-      <div className="relative  flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-indigo-600/30 scrollbar-track-transparent">
-        <div className="flex-1 overflow-y-auto space-y-6 mb-4 px-2 max-w-4xl mx-auto">
+      <div className="relative flex-1 overflow-auto p-2 md:p-4 scrollbar-thin scrollbar-thumb-indigo-600/30 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto space-y-4 md:space-y-6 mb-4 px-1 md:px-2 max-w-4xl mx-auto">
           {chatMessages.length === 0 ? (
-            <div className="space-y-10 py-10">
+            <div className="space-y-6 md:space-y-10 py-6 md:py-10">
               <div className="text-center">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-                  className="relative w-32 h-32 mx-auto"
+                  className="relative w-24 h-24 md:w-32 md:h-32 mx-auto"
                 >
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596bf] p-5 rounded-full shadow-glow-lg animate-pulse-slow">
-                      <Sparkles className="h-14 w-14 text-white" />
+                    <div className="bg-gradient-to-r from-[#2596be]/80 to-[#2596bf] p-4 md:p-5 rounded-full shadow-glow-lg animate-pulse-slow">
+                      <Sparkles className="h-10 w-10 md:h-14 md:w-14 text-white" />
                     </div>
                   </div>
                 </motion.div>
@@ -720,7 +720,7 @@ Example of action analysis:
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
-                  className="text-4xl font-bold mt-6 text-transparent bg-clip-text bg-gradient-to-r from-violet-200 via-indigo-200 to-blue-200"
+                  className="text-2xl md:text-4xl font-bold mt-4 md:mt-6 text-transparent bg-clip-text bg-gradient-to-r from-violet-200 via-indigo-200 to-blue-200"
                 >
                   How can I assist you today?
                 </motion.h2>
@@ -728,7 +728,7 @@ Example of action analysis:
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.5 }}
-                  className="text-indigo-200/80 mt-3 max-w-md mx-auto"
+                  className="text-indigo-200/80 mt-2 md:mt-3 max-w-md mx-auto text-sm md:text-base"
                 >
                   Ask me anything or select a suggestion below
                 </motion.p>
@@ -752,9 +752,9 @@ Example of action analysis:
                       isLast={index === chatMessages.length - 1}
                     />
                     {message.actionAnalysis && (
-                      <div className="mt-2">
+                      <div className="mt-1 md:mt-2">
                         <button
-                          className="text-blue-500"
+                          className="text-blue-500 text-sm md:text-base"
                           onClick={() => {
                             const actionAnalysisElement = document.getElementById(`action-analysis-${message.id}`);
                             if (actionAnalysisElement) {
@@ -764,7 +764,7 @@ Example of action analysis:
                         >
                           {message.actionAnalysis ? 'Show Action Analysis' : 'Hide Action Analysis'}
                         </button>
-                        <div id={`action-analysis-${message.id}`} className="hidden">
+                        <div id={`action-analysis-${message.id}`} className="hidden text-sm md:text-base">
                           <ReactMarkdown>
                             {message.actionAnalysis}
                           </ReactMarkdown>
@@ -782,9 +782,9 @@ Example of action analysis:
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex justify-start ml-12"
+              className="flex justify-start ml-6 md:ml-12"
             >
-              <div className="bg-black/20 backdrop-blur-md p-3 rounded-full border border-indigo-500/20 shadow-glow-sm">
+              <div className="bg-black/20 backdrop-blur-md p-2 md:p-3 rounded-full border border-indigo-500/20 shadow-glow-sm">
                 <div className="flex items-center space-x-2">
                   <LoadingText />
                 </div>
@@ -795,7 +795,7 @@ Example of action analysis:
       </div>
 
       {/* Input area - Glassmorphic style */}
-      <div className="relative z-10 px-4 pb-24 mt-2 w-full max-w-4xl mx-auto">
+      <div className="relative z-10 px-2 md:px-4 pb-16 md:pb-24 mt-2 w-full max-w-4xl mx-auto">
         <form onSubmit={handleSubmitForm}>
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -814,14 +814,14 @@ Example of action analysis:
                 <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-indigo-500/10 to-blue-500/10 animate-gradient-x"></div>
               </div>
               <div className="relative flex items-center">
-          <Textarea
+                <Textarea
                   ref={inputRef}
-            value={input}
+                  value={input}
                   onChange={(e) => setInputState(e.target.value)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   placeholder="Type your message..."
-                  className="w-full bg-transparent border-none focus-visible:ring-0 rounded-2xl py-4 px-6 text-base md:text-lg font-medium text-white placeholder:text-indigo-200/50 min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
+                  className="w-full bg-transparent border-none focus-visible:ring-0 rounded-2xl py-3 md:py-4 px-4 md:px-6 text-sm md:text-base font-medium text-white placeholder:text-indigo-200/50 min-h-[40px] md:min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
                   rows={1}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
@@ -829,37 +829,35 @@ Example of action analysis:
                     target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
                   }}
                 />
-                <div className="absolute right-4 flex items-center gap-2">
-
+                <div className="absolute right-3 md:right-4 flex items-center gap-2">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
-                    className="bg-gradient-to-r from-[#2596be] to-[#1a7a9e] text-white rounded-full h-10 w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
+                    className="bg-gradient-to-r from-[#2596be] to-[#1a7a9e] text-white rounded-full h-8 w-8 md:h-10 md:w-10 flex items-center justify-center shadow-glow-sm transition-all duration-300"
                   >
-                    <Send className="h-5 w-5 "   />
+                    <Send className="h-4 w-4 md:h-5 md:w-5" />
                   </motion.button>
                 </div>
               </div>
-        </div>
+            </div>
           </motion.div>
-      </form>
+        </form>
       </div>
 
       {/* Bottom navigation */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 w-full max-w-lg z-20">
+      <div className="fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 px-2 md:px-4 w-full max-w-lg z-20">
         <motion.div
           initial={{ y: 50, x:50, opacity: 0 }}
           animate={{ y: 0,x:0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-full p-2 shadow-glow-sm"
+          className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-full p-1.5 md:p-2 shadow-glow-sm"
         >
           <AnimatedTooltip items={navigationItems} className="flex flex-row justify-center items-center"/>
         </motion.div>
-         
       </div>
       {/* Social Media Icons */}
-      <div className="fixed bottom-6 right-6 flex flex-row gap-4 z-20">
+      <div className="fixed bottom-4 md:bottom-6 right-4 md:right-6 flex flex-row gap-3 md:gap-4 z-20">
           <a 
             href="https://twitter.com/your_twitter" 
             target="_blank" 

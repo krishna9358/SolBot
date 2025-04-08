@@ -105,13 +105,13 @@ export default function ChatPage() {
   //   return solanaPrice
   // }
 
-  //! Check wallet connection on page load
-  // useEffect(() => {
-  //   if (!publicKey) {
-  //     console.error("No wallet connected");
-  //     router.push("/");
-  //   }
-  // }, [publicKey]);
+  // Check wallet connection on page load
+  useEffect(() => {
+    if (!publicKey) {
+      console.error("No wallet connected");
+      router.push("/");
+    }
+  }, [publicKey]);
 
   // tools for ai agent
   const tools = [

@@ -97,20 +97,21 @@ export default function ChatPage() {
   const { connection } = useConnection();
   const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
 
-  async function getSolanaPrice() {
-    const url = 'https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT'
-    const res = await fetch(url)
-    const data = await res.json()
-    const solanaPrice = data.price
-    return solanaPrice
-  }
-  // Check wallet connection on page load
-  useEffect(() => {
-    if (!publicKey) {
-      console.error("No wallet connected");
-      router.push("/");
-    }
-  }, [publicKey, router]);
+  // async function getSolanaPrice() {
+  //   const url = 'https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT'
+  //   const res = await fetch(url)
+  //   const data = await res.json()
+  //   const solanaPrice = data.price
+  //   return solanaPrice
+  // }
+
+  //! Check wallet connection on page load
+  // useEffect(() => {
+  //   if (!publicKey) {
+  //     console.error("No wallet connected");
+  //     router.push("/");
+  //   }
+  // }, [publicKey]);
 
   // tools for ai agent
   const tools = [
@@ -205,6 +206,11 @@ export default function ChatPage() {
       func: async (input: string) => {
         const response = await axios.post('https://solbot-production-82ef.up.railway.app/analyze', {
           user_query: input
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
         });
         return JSON.stringify(response.data);
       },
@@ -235,7 +241,7 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
-  const solanaPrice = await getSolanaPrice()
+  // const solanaPrice = await getSolanaPrice()
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");
 
@@ -255,8 +261,8 @@ Important Instructions:
 !!! This tool can have query about a single coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'. 
 !!! If user asks for financial advice about multiple coins, First call this tool querying about first coin then second coin and so on.
 !!! Dont call this tool multiple times. If output is already available about a coin then don't call this tool again for that coin.
-!!! The current price of solana is ${solanaPrice}
-!!! if user asks about price of solana for your information price is : ${solanaPrice}
+
+
 
 ## Most important:
 !!! Dont call any tool multiple times. or keep calling it continuosly. If a tool is called once learn its output or move to the next step. 

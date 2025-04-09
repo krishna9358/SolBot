@@ -104,6 +104,13 @@ export default function ChatPage() {
   //   const solanaPrice = data.price
   //   return solanaPrice
   // }
+  async function getSolanaPrice() {
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
+    const res = await fetch(url);
+    const data = await res.json();
+    const solanaPrice = data.solana.usd;
+    return solanaPrice;
+  }
 
   // Check wallet connection on page load
   useEffect(() => {
@@ -241,7 +248,7 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
-  // const solanaPrice = await getSolanaPrice()
+  const solanaPrice = await getSolanaPrice()
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");
 
@@ -261,6 +268,8 @@ Important Instructions:
 !!! This tool can have query about a single coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'. 
 !!! If user asks for financial advice about multiple coins, First call this tool querying about first coin then second coin and so on.
 !!! Dont call this tool multiple times. If output is already available about a coin then don't call this tool again for that coin.
+!!! The current price of solana is ${solanaPrice}
+!!! if user asks about price of solana for your information price is : ${solanaPrice}
 
 
 
@@ -843,6 +852,13 @@ Example of action analysis:
                   placeholder="Type your message..."
                   className="w-full bg-transparent border-none focus-visible:ring-0 rounded-2xl py-3 md:py-4 px-4 md:px-6 text-sm md:text-base font-medium text-white placeholder:text-indigo-200/50 min-h-[40px] md:min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
                   rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      const form = e.currentTarget.form;
+                      if (form) form.requestSubmit();
+                    }
+                  }}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
                     target.style.height = 'auto';

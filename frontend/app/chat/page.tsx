@@ -436,6 +436,7 @@ Key Instructions :
 •	Provide a natural, conversational response to the user confirming what was done.
 
   !!! Most Importantly
+### Avoid giving the name of tool or function used in the final summary however it can be in action analysis.
 ### Strictly follow the output structure at any cost
 ### In action analysis you dont need to return the name of the tools you have to return list of actions summary that are done.
 ### If you see financial advice is being asked and financial advice tool is called , it gives structure output having the following parameters:

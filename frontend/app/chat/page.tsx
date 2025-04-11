@@ -237,6 +237,7 @@ export default function ChatPage() {
       description: "Fetches current price of Solana. This function does not requires any input.",
       func: async (input: string) => {
         return getSolanaPriceFunc();
+      }
     }),
   ];
 

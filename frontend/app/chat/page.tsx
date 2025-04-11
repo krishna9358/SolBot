@@ -104,7 +104,7 @@ export default function ChatPage() {
   //   const solanaPrice = data.price
   //   return solanaPrice
   // }
-  async function getSolanaPrice() {
+  async function getSolanaPriceFunc() {
     const url = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
     const res = await fetch(url);
     const data = await res.json();
@@ -232,6 +232,12 @@ export default function ChatPage() {
         return JSON.stringify(response.data);
       },
     }),
+     new DynamicTool({
+      name: "getSolanaPrice",
+      description: "Fetches current price of Solana. This function does not requires any input.",
+      func: async (input: string) => {
+        return getSolanaPriceFunc();
+    }),
   ];
 
   // ai agent
@@ -278,8 +284,7 @@ Important Instructions:
 !!! This tool can have query about a single coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'. 
 !!! If user asks for financial advice about multiple coins, First call this tool querying about first coin then second coin and so on.
 !!! Dont call this tool multiple times. If output is already available about a coin then don't call this tool again for that coin.
-!!! The current price of solana is ${solanaPrice}
-!!! if user asks about price of solana for your information price is : ${solanaPrice}
+!!! if user asks about price of solana for please call getSolanaPrice tool.
 
 
 

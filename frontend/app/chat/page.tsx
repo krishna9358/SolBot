@@ -265,7 +265,7 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
-  const solanaPrice = await getSolanaPrice()
+  // const solanaPrice = await getSolanaPrice()
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");
 

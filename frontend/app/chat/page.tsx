@@ -192,16 +192,26 @@ export default function ChatPage() {
       func: async (input:string) => {
         try {
           if (!publicKey) return "No wallet connected";
-          const accountInfo = await connection.getAccountInfo(publicKey);
-          if (accountInfo) {
+          
+          // First check if the account exists
+          const accountExists = await connection.getAccountInfo(publicKey);
+          
+          if (!accountExists) {
+            // If the account doesn't exist yet, return a helpful message
             return JSON.stringify({
               publicKey: publicKey.toBase58(),
-              amount: accountInfo.lamports/LAMPORTS_PER_SOL,
-              executable: accountInfo.executable,
-              dataLength: accountInfo.data.length
+              status: "Account not yet created on the blockchain",
+              message: "This wallet address exists but hasn't been used on the Solana blockchain yet. It will be created automatically when you receive SOL or create a token account."
             }, null, 2);
           }
-          return "Account not found";
+          
+          // If the account exists, return the account info
+          return JSON.stringify({
+            publicKey: publicKey.toBase58(),
+            amount: accountExists.lamports/LAMPORTS_PER_SOL,
+            executable: accountExists.executable,
+            dataLength: accountExists.data.length
+          }, null, 2);
         } catch (error: any) {
           return `Error: ${error.message}`;
         }

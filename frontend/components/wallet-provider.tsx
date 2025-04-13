@@ -15,7 +15,7 @@ require('@solana/wallet-adapter-react-ui/styles.css')
 export const ClientWalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Use a more reliable RPC endpoint for mainnet-beta
   const endpoint = useMemo(() => 'https://solana-mainnet.g.alchemy.com/v2/demo', [])
-  
+  const connection = useMemo(() => new Connection(endpoint, { httpHeaders: { 'Access-Control-Allow-Origin': '*' } }), [endpoint])
   // Configure connection with better reliability settings
   const connectionConfig = useMemo(() => ({
     commitment: 'confirmed' as Commitment,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import {
   MessageCircle,
@@ -102,7 +102,26 @@ export default function ChatPage() {
     return [];
   });
   const { publicKey, sendTransaction } = useWallet();
+  
+  // Create a custom connection with CORS headers
+  const customConnection = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return new Connection('https://solana-mainnet.g.alchemy.com/v2/demo', {
+        commitment: 'confirmed',
+        httpHeaders: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
+      });
+    }
+    return null;
+  }, []);
+  
+  // Use the custom connection if available, otherwise fall back to the default one
   const { connection } = useConnection();
+  const effectiveConnection = customConnection || connection;
+  
   const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
 
   // Save messages to localStorage whenever they change
@@ -151,7 +170,7 @@ export default function ChatPage() {
           if(!publicKey){
             return "No wallet connected";
           }
-          const balance = await connection.getBalance(publicKey);
+          const balance = await effectiveConnection.getBalance(publicKey);
           return `Balance: ${balance / LAMPORTS_PER_SOL} SOL`;
         } catch (error: any) {
           return `Error: ${error.message}`;
@@ -175,8 +194,8 @@ export default function ChatPage() {
               lamports: amountLamports,
             })
           );
-          const signature = await sendTransaction(transaction, connection);
-          await connection.confirmTransaction(signature, "processed");
+          const signature = await sendTransaction(transaction, effectiveConnection);
+          await effectiveConnection.confirmTransaction(signature, "processed");
           return `Transfer successful: ${signature}`;
         } catch (error: any) {
           return `Error: ${error.message}`;
@@ -197,10 +216,10 @@ export default function ChatPage() {
               lamports: amount * LAMPORTS_PER_SOL,
             })
           );
-          const { blockhash } = await connection.getLatestBlockhash();
+          const { blockhash } = await effectiveConnection.getLatestBlockhash();
           transaction.recentBlockhash = blockhash;
           transaction.feePayer = publicKey;
-          const estimatedFee = await transaction.getEstimatedFee(connection);
+          const estimatedFee = await transaction.getEstimatedFee(effectiveConnection);
           return `Estimated transaction cost: ${estimatedFee ? estimatedFee / LAMPORTS_PER_SOL : 0} SOL`;
         } catch (error: any) {
           return `Error: ${error.message}`;
@@ -215,7 +234,7 @@ export default function ChatPage() {
           if (!publicKey) return "No wallet connected";
           
           // First check if the account exists
-          const accountExists = await connection.getAccountInfo(publicKey);
+          const accountExists = await effectiveConnection.getAccountInfo(publicKey);
           
           if (!accountExists) {
             // If the account doesn't exist yet, return a helpful message
@@ -754,12 +773,12 @@ Example of action analysis:
   //       })
   //     );
 
-  //     const { blockhash } = await connection.getLatestBlockhash();
+  //     const { blockhash } = await effectiveConnection.getLatestBlockhash();
   //     transaction.recentBlockhash = blockhash;
   //     transaction.feePayer = publicKey;
 
-  //     const signedTransaction = await sendTransaction(transaction, connection);
-  //     const confirmation = await connection.confirmTransaction(signedTransaction);
+  //     const signedTransaction = await sendTransaction(transaction, effectiveConnection);
+  //     const confirmation = await effectiveConnection.confirmTransaction(signedTransaction);
 
   //     if (confirmation.value.err) {
   //       throw new Error("Transaction failed");

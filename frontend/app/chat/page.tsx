@@ -293,9 +293,15 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
-  console.clear()
-  console.log("Chat History yo yo: ", chatMessages);
-  // const solanaPrice = await getSolanaPrice()
+  // console.clear()
+
+  
+  var chat_history = ""
+        if (chatMessages.length > 0) {
+            chat_history = "Previous conversation history:\n"
+        }
+        for (const chat_msg of chat_history) { chat_history += `${chat_msg.role}: ${chat_msg.content}\n`; }
+  console.log("Chat History yo yo: ", chat_history);
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");
 
@@ -346,6 +352,8 @@ Observation: The result returned by the tool
 ... (this Thought/Action/Action Input/Observation can repeat up to 5 times as needed)
 Thought: I now know the final answer
 Final Answer: Provide a clear, concise response to the user's original query with relevant information and results
+
+${chat_history}
 
 Begin!
 

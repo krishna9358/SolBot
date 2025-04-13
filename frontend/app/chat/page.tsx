@@ -295,7 +295,7 @@ const llm = new ChatOpenAI({
 async function aiAgent(input: string) {
   console.clear()
 
-  // console.log("chat history wowww: ",chatMessages
+ 
   
 
   
@@ -342,12 +342,12 @@ Important Instructions:
 ## MOST MOST IMPORTANT 
 !!! This is the most important one... Do not break the output format at any cost even if something unexpected occured you need to notify it in the form of Final Answer but never break the output format.
 !!! If you feel you have the direct answer without using any tools dont break the thought action format use DirectAnswer tool so that error does not occurs.
-!!! 
+!!! Please understand the context of chat properly from previous conversation history (maybe given below). You will be given user message there is a chance it is a followup to previous request so you have to resolve that request intelligently.
 
 
 Use the following format:
 
-Task: The user's query or request to resolve
+User Message: The user's query or request to resolve
 Thought: Your reasoning about what needs to be done to fulfill the request
 Action: The tool to use (must be one of [{tool_names}])
 Action Input: The specific input to provide to the tool
@@ -360,7 +360,7 @@ ${chat_history}
 
 Begin!
 
-Task: {input}
+User Message: {input}
 {agent_scratchpad}
 `
 

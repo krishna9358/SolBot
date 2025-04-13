@@ -18,6 +18,7 @@ import {
   // Settings,
 } from "lucide-react"
 import ChatMessage from "@/components/chat-message"
+import { ConversationSummaryMemory } from "langchain/memory";
 import { useChat } from "@/hooks/use-chat"
 import { useRouter } from "next/navigation"
 import PromptSuggestions from "@/components/prompt-suggestions"
@@ -92,10 +93,45 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const [input, setInputState] = useState('') 
   const [isLoading2, setIsLoading] = useState(false) 
-  const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([]) // New state for chat messages
+  const [chatMessages, setChatMessages] = useState<ChatMessageType[]>(() => {
+    // Load messages from localStorage on component mount
+    if (typeof window !== 'undefined') {
+      const savedMessages = localStorage.getItem('chatMessages');
+      return savedMessages ? JSON.parse(savedMessages) : [];
+    }
+    return [];
+  });
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+    }
+  }, [chatMessages]);
+
+  // Function to clear chat history
+  const handleClearChat = () => {
+    setChatMessages([]);
+    localStorage.removeItem('chatMessages');
+  };
+
+  // async function getSolanaPrice() {
+  //   const url = 'https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT'
+  //   const res = await fetch(url)
+  //   const data = await res.json()
+  //   const solanaPrice = data.price
+  //   return solanaPrice
+  // }
+  async function getSolanaPriceFunc() {
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
+    const res = await fetch(url);
+    const data = await res.json();
+    const solanaPrice = data.solana.usd;
+    return solanaPrice;
+  }
 
   // Check wallet connection on page load
   useEffect(() => {
@@ -103,7 +139,7 @@ export default function ChatPage() {
       console.error("No wallet connected");
       router.push("/");
     }
-  }, [publicKey, router]);
+  }, [publicKey]);
 
   // tools for ai agent
   const tools = [
@@ -177,16 +213,26 @@ export default function ChatPage() {
       func: async (input:string) => {
         try {
           if (!publicKey) return "No wallet connected";
-          const accountInfo = await connection.getAccountInfo(publicKey);
-          if (accountInfo) {
+          
+          // First check if the account exists
+          const accountExists = await connection.getAccountInfo(publicKey);
+          
+          if (!accountExists) {
+            // If the account doesn't exist yet, return a helpful message
             return JSON.stringify({
               publicKey: publicKey.toBase58(),
-              amount: accountInfo.lamports/LAMPORTS_PER_SOL,
-              executable: accountInfo.executable,
-              dataLength: accountInfo.data.length
+              status: "Account not yet created on the blockchain",
+              message: "This wallet address exists but hasn't been used on the Solana blockchain yet. It will be created automatically when you receive SOL or create a token account."
             }, null, 2);
           }
-          return "Account not found";
+          
+          // If the account exists, return the account info
+          return JSON.stringify({
+            publicKey: publicKey.toBase58(),
+            amount: accountExists.lamports/LAMPORTS_PER_SOL,
+            executable: accountExists.executable,
+            dataLength: accountExists.data.length
+          }, null, 2);
         } catch (error: any) {
           return `Error: ${error.message}`;
         }
@@ -198,9 +244,28 @@ export default function ChatPage() {
       func: async (input: string) => {
         const response = await axios.post('https://solbot-production-82ef.up.railway.app/analyze', {
           user_query: input
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
         });
         return JSON.stringify(response.data);
       },
+    }),
+     new DynamicTool({
+      name: "getSolanaPrice",
+      description: "Fetches current price of Solana. This function does not requires any input.",
+      func: async (input: string) => {
+        return getSolanaPriceFunc();
+      }
+    }),
+    new DynamicTool({
+        name: "DirectAnswer",
+        description: "Use this tool when you can answer the question directly without any other tools.",
+        func: async (input) => {
+            return input; // Simply returns the input as the observation
+        },
     }),
   ];
 
@@ -228,6 +293,7 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
+  // const solanaPrice = await getSolanaPrice()
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");
 
@@ -247,6 +313,8 @@ Important Instructions:
 !!! This tool can have query about a single coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'. 
 !!! If user asks for financial advice about multiple coins, First call this tool querying about first coin then second coin and so on.
 !!! Dont call this tool multiple times. If output is already available about a coin then don't call this tool again for that coin.
+!!! if user asks about price of solana for please call getSolanaPrice tool.
+
 
 
 ## Most important:
@@ -257,9 +325,13 @@ Important Instructions:
 !!! Dont use any tool if you dont need it. 
 !!! Keep the input format same as user's query. Don't include any thing extra. There should be only input parameters of function separated by comma and nothing extra.
 !!! This one is most important of all. Do not break the following format. Whatever happens, dont break output format even if the error occurs or something went wrong or something is incomplete.
+!!! If you feel you have the direct answer without using any tools, don't break the thought action format - use DirectAnswer tool so that error does not occur.
 
-## MOST MOST IMPORTANT
-!!! This is the most important one… Do not break the output format at any cost even if something unexpected occured you need to notify it in the form of Final Answer but never break the output format.
+
+## MOST MOST IMPORTANT 
+!!! This is the most important one... Do not break the output format at any cost even if something unexpected occured you need to notify it in the form of Final Answer but never break the output format.
+!!! If you feel you have the direct answer without using any tools dont break the thought action format use DirectAnswer tool so that error does not occurs.
+!!! 
 
 
 Use the following format:
@@ -284,7 +356,11 @@ Task: {input}
   //   model: "gpt-4o-mini",
   //   apiKey: process.env.OPENAI_API_KEY,
   // });
-
+const memory = new ConversationSummaryMemory({
+  memoryKey: "chat_history", // Key used to store/retrieve memory
+  llm: llm,                  // Same LLM used for generating responses
+  returnMessages: true,      // Return formatted messages, not string
+});
 
 
   const prompt = PromptTemplate.fromTemplate(customPrompt);
@@ -300,9 +376,9 @@ Task: {input}
     const agentExecutor = new AgentExecutor({
         agent,
         tools,
+        // memory, // Memory is supported in AgentExecutor, not in createReactAgent
         maxIterations: 5,
-        earlyStoppingMethod: "force",
-        returnIntermediateSteps: true,
+        // returnIntermediateSteps: true,
         verbose: true,
     });
 
@@ -310,51 +386,87 @@ Task: {input}
 
   let logs = "";
 
-  const result = await agentExecutor.invoke(
-      { input },
-      {
+  try {
+      const result = await agentExecutor.invoke(
+        { input },
+        {
           callbacks: [
-              {
-                  handleAgentAction(action) {
-                      const actionLog = `Action: ${action.tool}\nAction Input: ${action.toolInput}\n`;
-                      logs += actionLog;
-                      // console.log(actionLog);
-                      // onLog(actionLog);
-                  },
-                  handleToolEnd(output) {
-                      const observationLog = `Observation: ${output.output}\n`;
-                      logs += observationLog;
-                      // console.log(observationLog);
-                      // onLog(observationLog);
-                  },
-                  handleAgentEnd(action) {
-                      const finalAnswerLog = `Final Answer: ${action.returnValues.output}\n`;
-                      logs += finalAnswerLog;
-                      // console.log(finalAnswerLog);
-                      // onLog(finalAnswerLog);
-                  }
+            {
+              handleAgentAction(action) {
+                try {
+                  const actionLog = `Action:\n${action.tool}\nAction Input: ${action.toolInput}\n`;
+                  logs += actionLog;
+                } catch (error) {
+                  console.error("Error in handleAgentAction:", error);
+                  logs += `Action Error: Could not log action properly\n`;
+                }
+              },
+              handleToolEnd(output) {
+                try {
+                  const observationLog = `Observation: ${output.output}\n`;
+                  logs += observationLog;
+                } catch (error) {
+                  console.error("Error in handleToolEnd:", error);
+                  logs += `Observation Error: Could not log observation properly\n`;
+                }
+              },
+              handleAgentEnd(action) {
+                try {
+                  const finalAnswerLog = `Final Answer: ${action.returnValues.output}\n`;
+                  logs += finalAnswerLog;
+                } catch (error) {
+                  console.error("Error in handleAgentEnd:", error);
+                  logs += `Final Answer Error: Could not log final answer properly\n`;
+                }
               }
+            }
           ]
+        }
+      );
+      
+      // Add final result to logs with error handling
+      try {
+        logs += `Final Result:\n${JSON.stringify(result)}\n`;
+      } catch (error) {
+        console.error("Error logging final result:", error);
+        logs += `Final Result Error: Could not log final result properly\n`;
       }
-  );
+      
+    } catch (agentError) {
+      console.error("Agent execution error:", agentError);
+      // Handle the case where agent execution fails completely
+      logs += `Agent Execution Error: ${agentError.message}\n`;
+      logs += `Final Answer: I encountered an error while processing your request. Let me provide a direct response.\n`;
+      
+      // For simple identity questions, provide a fallback response
+      if (input.toLowerCase().includes("who are you") || 
+          input.toLowerCase().includes("what are you") ||
+          input.toLowerCase().includes("introduce yourself")) {
+        logs += `Direct Response: I am an intelligent Solana blockchain assistant designed to help users perform operations and provide relevant information about the Solana blockchain.\n`;
+      }
+    }
+
 
     // Add final result to logs
-    logs += `Final Result: ${JSON.stringify(result)}\n`;
+    // logs += `Final Result: ${JSON.stringify(result)}\n`;
 
 
   // console.log("Final Result:", result);
   // logs += `Final Result: ${result}\n`;
 
 
-  const structure = z.object({
-      final_result: z.string().describe("A string which is The final conclusion or response that should be given to user based on his message and all that process that has been done."),
-      action_analysis: z.array(z.string()).describe("A list of strings where each string is an action taken or step performed. It should contain brief description of each important step."),
-  });
+  // Update this section
+const structure = z.object({
+  final_result: z.string().describe("A string which is The final conclusion or response that should be given to user based on his message and all that process that has been done."),
+  action_analysis: z.array(z.string()).describe("A list of strings where each string is an action taken or step performed. It should contain brief description of each important step."),
+});
 
-  const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
-      final_result: "The final conclusion or result derived from analyzing the logs.",
-      action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
-  },);
+// Make sure your parser expects these exact keys
+const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
+  final_result: "The final conclusion or result derived from analyzing the logs.",
+  action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
+});
+  
   console.clear();
   console.log("logs: ", logs)
   // return
@@ -376,6 +488,7 @@ The following tools could have been used in the logs.
 5. getFinancialAdvice
 • Provides financial advice about a crypto coin based on the user's query.
 
+
 📌 User Query:
 "${input}"
 
@@ -395,7 +508,9 @@ Key Instructions :
 •	Provide a natural, conversational response to the user confirming what was done.
 
   !!! Most Importantly
+### Avoid giving the name of tool or function used in the final summary however it can be in action analysis.
 ### Strictly follow the output structure at any cost
+### Even if there is some error in the logs if you feel answer is present and can be answered dont let the user know that the error occured.
 ### In action analysis you dont need to return the name of the tools you have to return list of actions summary that are done.
 ### If you see financial advice is being asked and financial advice tool is called , it gives structure output having the following parameters:
     action: Literal["BUY", "HODL", "SELL"] = Field(
@@ -428,6 +543,8 @@ Example of action analysis:
   // return
   const structuredLlm = llm.withStructuredOutput(structure);
 
+    
+
     let response = await structuredLlm.invoke(pr2);
     print(response)
     return response
@@ -443,6 +560,7 @@ Example of action analysis:
 
 
 
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -452,6 +570,7 @@ Example of action analysis:
     clearChat()
     setChatId(generateUniqueId())
     setChatMessages([]) // Clear chat messages for a new chat
+    localStorage.removeItem('chatMessages'); // Also clear from localStorage
   }
 
   const handleHomeClick = () => {
@@ -561,7 +680,7 @@ Example of action analysis:
       router.push("/")
       return; // Exit if no wallet is connected
     } 
-    setChatMessages([]);
+    
     // Add user message to chat
     const userMessage: ChatMessageType = { id: Date.now(), role: 'user', content: input };
     setChatMessages((prev) => [...prev, userMessage]); // Update chat messages state
@@ -671,6 +790,7 @@ Example of action analysis:
   // }
 
 
+
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       {/* Video Background */}
@@ -687,16 +807,26 @@ Example of action analysis:
             GAIA
             </span>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleNewChat}
-            className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
-          >
-            <PlusCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-300" />
-            <span className="text-indigo-100">New Chat</span>
-          </motion.button>
-          <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleClearChat}
+              className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
+            >
+              <span className="text-indigo-100">Clear Chat</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleNewChat}
+              className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
+            >
+              <PlusCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-300" />
+              <span className="text-indigo-100">New Chat</span>
+            </motion.button>
+            <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
+          </div>
         </div>
       </header>
 
@@ -825,6 +955,13 @@ Example of action analysis:
                   placeholder="Type your message..."
                   className="w-full bg-transparent border-none focus-visible:ring-0 rounded-2xl py-3 md:py-4 px-4 md:px-6 text-sm md:text-base font-medium text-white placeholder:text-indigo-200/50 min-h-[40px] md:min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
                   rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      const form = e.currentTarget.form;
+                      if (form) form.requestSubmit();
+                    }
+                  }}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
                     target.style.height = 'auto';

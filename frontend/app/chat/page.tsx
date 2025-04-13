@@ -293,6 +293,8 @@ const llm = new ChatOpenAI({
 
 // ai agent
 async function aiAgent(input: string) {
+  console.clear()
+  console.log("Chat History yo yo: ", chatMessages);
   // const solanaPrice = await getSolanaPrice()
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");

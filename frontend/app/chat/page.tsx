@@ -469,7 +469,7 @@ const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
   action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
 });
   
-  console.clear();
+  // console.clear();
   console.log("logs: ", logs)
   // return
   let pr2 = `

@@ -92,10 +92,30 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const [input, setInputState] = useState('') 
   const [isLoading2, setIsLoading] = useState(false) 
-  const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([]) // New state for chat messages
+  const [chatMessages, setChatMessages] = useState<ChatMessageType[]>(() => {
+    // Load messages from localStorage on component mount
+    if (typeof window !== 'undefined') {
+      const savedMessages = localStorage.getItem('chatMessages');
+      return savedMessages ? JSON.parse(savedMessages) : [];
+    }
+    return [];
+  });
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [balance, setBalance] = useState<number | null>(null); // State to hold the balance
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+    }
+  }, [chatMessages]);
+
+  // Function to clear chat history
+  const handleClearChat = () => {
+    setChatMessages([]);
+    localStorage.removeItem('chatMessages');
+  };
 
   // async function getSolanaPrice() {
   //   const url = 'https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT'
@@ -495,6 +515,7 @@ Example of action analysis:
     clearChat()
     setChatId(generateUniqueId())
     setChatMessages([]) // Clear chat messages for a new chat
+    localStorage.removeItem('chatMessages'); // Also clear from localStorage
   }
 
   const handleHomeClick = () => {
@@ -604,7 +625,7 @@ Example of action analysis:
       router.push("/")
       return; // Exit if no wallet is connected
     } 
-    setChatMessages([]);
+    
     // Add user message to chat
     const userMessage: ChatMessageType = { id: Date.now(), role: 'user', content: input };
     setChatMessages((prev) => [...prev, userMessage]); // Update chat messages state
@@ -731,16 +752,26 @@ Example of action analysis:
             GAIA
             </span>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleNewChat}
-            className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
-          >
-            <PlusCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-300" />
-            <span className="text-indigo-100">New Chat</span>
-          </motion.button>
-          <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleClearChat}
+              className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
+            >
+              <span className="text-indigo-100">Clear Chat</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleNewChat}
+              className="bg-black/30 hover:bg-black/40 text-white font-medium py-1.5 md:py-2 px-3 md:px-4 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 flex items-center gap-1.5 md:gap-2 shadow-glow-sm text-sm md:text-base"
+            >
+              <PlusCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-300" />
+              <span className="text-indigo-100">New Chat</span>
+            </motion.button>
+            <WalletMultiButton style={{ background: 'linear-gradient(to right, #2596be, #2596be)' }} />
+          </div>
         </div>
       </header>
 

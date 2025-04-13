@@ -18,6 +18,7 @@ import {
   // Settings,
 } from "lucide-react"
 import ChatMessage from "@/components/chat-message"
+import { ConversationSummaryMemory } from "langchain/memory";
 import { useChat } from "@/hooks/use-chat"
 import { useRouter } from "next/navigation"
 import PromptSuggestions from "@/components/prompt-suggestions"
@@ -259,6 +260,13 @@ export default function ChatPage() {
         return getSolanaPriceFunc();
       }
     }),
+    new DynamicTool({
+        name: "DirectAnswer",
+        description: "Use this tool when you can answer the question directly without any other tools.",
+        func: async (input) => {
+            return input; // Simply returns the input as the observation
+        },
+    }),
   ];
 
   // ai agent
@@ -317,9 +325,13 @@ Important Instructions:
 !!! Dont use any tool if you dont need it. 
 !!! Keep the input format same as user's query. Don't include any thing extra. There should be only input parameters of function separated by comma and nothing extra.
 !!! This one is most important of all. Do not break the following format. Whatever happens, dont break output format even if the error occurs or something went wrong or something is incomplete.
+!!! If you feel you have the direct answer without using any tools, don't break the thought action format - use DirectAnswer tool so that error does not occur.
 
-## MOST MOST IMPORTANT
-!!! This is the most important one… Do not break the output format at any cost even if something unexpected occured you need to notify it in the form of Final Answer but never break the output format.
+
+## MOST MOST IMPORTANT 
+!!! This is the most important one... Do not break the output format at any cost even if something unexpected occured you need to notify it in the form of Final Answer but never break the output format.
+!!! If you feel you have the direct answer without using any tools dont break the thought action format use DirectAnswer tool so that error does not occurs.
+!!! 
 
 
 Use the following format:
@@ -344,7 +356,11 @@ Task: {input}
   //   model: "gpt-4o-mini",
   //   apiKey: process.env.OPENAI_API_KEY,
   // });
-
+const memory = new ConversationSummaryMemory({
+  memoryKey: "chat_history", // Key used to store/retrieve memory
+  llm: llm,                  // Same LLM used for generating responses
+  returnMessages: true,      // Return formatted messages, not string
+});
 
 
   const prompt = PromptTemplate.fromTemplate(customPrompt);
@@ -360,9 +376,9 @@ Task: {input}
     const agentExecutor = new AgentExecutor({
         agent,
         tools,
+        // memory, // Memory is supported in AgentExecutor, not in createReactAgent
         maxIterations: 5,
-        earlyStoppingMethod: "force",
-        returnIntermediateSteps: true,
+        // returnIntermediateSteps: true,
         verbose: true,
     });
 
@@ -370,51 +386,87 @@ Task: {input}
 
   let logs = "";
 
-  const result = await agentExecutor.invoke(
-      { input },
-      {
+  try {
+      const result = await agentExecutor.invoke(
+        { input },
+        {
           callbacks: [
-              {
-                  handleAgentAction(action) {
-                      const actionLog = `Action: ${action.tool}\nAction Input: ${action.toolInput}\n`;
-                      logs += actionLog;
-                      // console.log(actionLog);
-                      // onLog(actionLog);
-                  },
-                  handleToolEnd(output) {
-                      const observationLog = `Observation: ${output.output}\n`;
-                      logs += observationLog;
-                      // console.log(observationLog);
-                      // onLog(observationLog);
-                  },
-                  handleAgentEnd(action) {
-                      const finalAnswerLog = `Final Answer: ${action.returnValues.output}\n`;
-                      logs += finalAnswerLog;
-                      // console.log(finalAnswerLog);
-                      // onLog(finalAnswerLog);
-                  }
+            {
+              handleAgentAction(action) {
+                try {
+                  const actionLog = `Action:\n${action.tool}\nAction Input: ${action.toolInput}\n`;
+                  logs += actionLog;
+                } catch (error) {
+                  console.error("Error in handleAgentAction:", error);
+                  logs += `Action Error: Could not log action properly\n`;
+                }
+              },
+              handleToolEnd(output) {
+                try {
+                  const observationLog = `Observation: ${output.output}\n`;
+                  logs += observationLog;
+                } catch (error) {
+                  console.error("Error in handleToolEnd:", error);
+                  logs += `Observation Error: Could not log observation properly\n`;
+                }
+              },
+              handleAgentEnd(action) {
+                try {
+                  const finalAnswerLog = `Final Answer: ${action.returnValues.output}\n`;
+                  logs += finalAnswerLog;
+                } catch (error) {
+                  console.error("Error in handleAgentEnd:", error);
+                  logs += `Final Answer Error: Could not log final answer properly\n`;
+                }
               }
+            }
           ]
+        }
+      );
+      
+      // Add final result to logs with error handling
+      try {
+        logs += `Final Result:\n${JSON.stringify(result)}\n`;
+      } catch (error) {
+        console.error("Error logging final result:", error);
+        logs += `Final Result Error: Could not log final result properly\n`;
       }
-  );
+      
+    } catch (agentError) {
+      console.error("Agent execution error:", agentError);
+      // Handle the case where agent execution fails completely
+      logs += `Agent Execution Error: ${agentError.message}\n`;
+      logs += `Final Answer: I encountered an error while processing your request. Let me provide a direct response.\n`;
+      
+      // For simple identity questions, provide a fallback response
+      if (input.toLowerCase().includes("who are you") || 
+          input.toLowerCase().includes("what are you") ||
+          input.toLowerCase().includes("introduce yourself")) {
+        logs += `Direct Response: I am an intelligent Solana blockchain assistant designed to help users perform operations and provide relevant information about the Solana blockchain.\n`;
+      }
+    }
+
 
     // Add final result to logs
-    logs += `Final Result: ${JSON.stringify(result)}\n`;
+    // logs += `Final Result: ${JSON.stringify(result)}\n`;
 
 
   // console.log("Final Result:", result);
   // logs += `Final Result: ${result}\n`;
 
 
-  const structure = z.object({
-      final_result: z.string().describe("A string which is The final conclusion or response that should be given to user based on his message and all that process that has been done."),
-      action_analysis: z.array(z.string()).describe("A list of strings where each string is an action taken or step performed. It should contain brief description of each important step."),
-  });
+  // Update this section
+const structure = z.object({
+  final_result: z.string().describe("A string which is The final conclusion or response that should be given to user based on his message and all that process that has been done."),
+  action_analysis: z.array(z.string()).describe("A list of strings where each string is an action taken or step performed. It should contain brief description of each important step."),
+});
 
-  const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
-      final_result: "The final conclusion or result derived from analyzing the logs.",
-      action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
-  },);
+// Make sure your parser expects these exact keys
+const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
+  final_result: "The final conclusion or result derived from analyzing the logs.",
+  action_analysis: "A list of actions or steps identified from the logs, indicating what happened.",
+});
+  
   console.clear();
   console.log("logs: ", logs)
   // return
@@ -458,6 +510,7 @@ Key Instructions :
   !!! Most Importantly
 ### Avoid giving the name of tool or function used in the final summary however it can be in action analysis.
 ### Strictly follow the output structure at any cost
+### Even if there is some error in the logs if you feel answer is present and can be answered dont let the user know that the error occured.
 ### In action analysis you dont need to return the name of the tools you have to return list of actions summary that are done.
 ### If you see financial advice is being asked and financial advice tool is called , it gives structure output having the following parameters:
     action: Literal["BUY", "HODL", "SELL"] = Field(
@@ -489,6 +542,8 @@ Example of action analysis:
   // print(pr2)
   // return
   const structuredLlm = llm.withStructuredOutput(structure);
+
+    
 
     let response = await structuredLlm.invoke(pr2);
     print(response)

@@ -445,7 +445,7 @@ const memory = new ConversationSummaryMemory({
         logs += `Final Result Error: Could not log final result properly\n`;
       }
       
-    } catch (agentError) {
+    } catch (agentError: any) {
       console.error("Agent execution error:", agentError);
       // Handle the case where agent execution fails completely
       logs += `Agent Execution Error: ${agentError.message}\n`;

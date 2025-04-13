@@ -300,7 +300,7 @@ async function aiAgent(input: string) {
         if (chatMessages.length > 0) {
             chat_history = "Previous conversation history:\n"
         }
-        for (const chat_msg of chat_history) { chat_history += `${chat_msg.role}: ${chat_msg.content}\n`; }
+        for (const chat_msg of chat_history) { chat_history += `${chat_msg["role"]}: ${chat_msg["content"]}\n`; }
   console.log("Chat History yo yo: ", chat_history);
   try {
     let temp = await pull<PromptTemplate>("hwchase17/react");

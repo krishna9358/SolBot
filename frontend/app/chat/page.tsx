@@ -242,7 +242,7 @@ export default function ChatPage() {
       name: "getFinancialAdvice",
       description: "Provides financial advice about a crypto coin based on the user's query. The query should be about only one coin at a time. For example: 'Should I buy solana today', 'Give me information and advice about BTC'.  Input format: query.",
       func: async (input: string) => {
-        const response = await axios.post('https://solbot-production-82ef.up.railway.app/analyze', {
+        const response = await axios.post('https://solbot-1-4w46.onrender.com/analyze', {
           user_query: input
         }, {
           headers: {
@@ -275,18 +275,18 @@ function print(input: any) {
   console.log(input)
 }
 
-// const llm = new ChatGroq({
-//   temperature: 0,
-//   // model: "qwen-2.5-32b",
-//   model: "llama-3.3-70b-versatile",
-//   apiKey: "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",
-// });
-
-const llm = new ChatOpenAI({
+const llm = new ChatGroq({
   temperature: 0,
-  model: "gpt-4o",
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  // model: "qwen-2.5-32b",
+  model: "meta-llama/llama-4-scout-17b-16e-instruct",
+  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
 });
+
+// const llm = new ChatOpenAI({
+//   temperature: 0,
+//   model: "gpt-4o",
+//   apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+// });
 
 // Need to use NEXT_PUBLIC_ prefix to access env variables on client side
 // console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)

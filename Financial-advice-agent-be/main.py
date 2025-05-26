@@ -1,5 +1,5 @@
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import textwrap
@@ -15,7 +15,7 @@ import os
 
 warnings.filterwarnings("ignore")
 
-# load_dotenv(override=True)
+load_dotenv(override=True)
 
 from utils import *
 from consts import *
@@ -27,7 +27,7 @@ MODEL = "llama-3.3-70b-versatile"
 llm = ChatGroq(
     temperature=0,
     model_name=MODEL,
-    api_key="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",
+    api_key=os.getenv("GROQ_API_KEY"),
 )
 obb.obb.account.login(pat="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoX3Rva2VuIjoiUmc2aWFhdVExZ1dOcDUxWGlBUjRkYnVVUVllem5GR2t2S05EVWEybiIsImV4cCI6MTc2ODM4OTE0MX0.OdPqeDk8-U6b7XDyx42nClC3Mm_kmTwe77W1fQhksNU")
 obb.obb.user.preferences.output_type = "dataframe"

@@ -278,7 +278,7 @@ function print(input: any) {
 const llm = new ChatGroq({
   temperature: 0,
   // model: "qwen-2.5-32b",
-  model: "meta-llama/llama-4-scout-17b-16e-instruct",
+  model: "openai/gpt-oss-120b",
   apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
 });
 
